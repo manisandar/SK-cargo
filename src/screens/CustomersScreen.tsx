@@ -33,6 +33,7 @@ export const CustomersScreen: React.FC = () => {
   const [parcels, setParcels] = useState<ParcelWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [customerSort, setCustomerSort] = useState<'shipments' | 'weight' | 'name'>('shipments');
 
   // Selected customer for Detail & History View
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
@@ -93,7 +94,7 @@ export const CustomersScreen: React.FC = () => {
 
   const filteredCustomers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return customers.filter((c) => {
+    const list = customers.filter((c) => {
       if (!q) return true;
       return (
         c.name.toLowerCase().includes(q) ||
@@ -102,7 +103,28 @@ export const CustomersScreen: React.FC = () => {
         (c.address && c.address.toLowerCase().includes(q))
       );
     });
-  }, [customers, searchQuery]);
+
+    return list.sort((a, b) => {
+      const aParcels = parcelsByCustomer.get(a.id) || [];
+      const bParcels = parcelsByCustomer.get(b.id) || [];
+      const aShipments = aParcels.length;
+      const bShipments = bParcels.length;
+      const aWeight = aParcels.reduce((sum, p) => sum + (p.total_weight_kg || 0), 0);
+      const bWeight = bParcels.reduce((sum, p) => sum + (p.total_weight_kg || 0), 0);
+
+      if (customerSort === 'shipments') {
+        if (bShipments !== aShipments) return bShipments - aShipments;
+        if (bWeight !== aWeight) return bWeight - aWeight;
+        return a.name.localeCompare(b.name);
+      }
+      if (customerSort === 'weight') {
+        if (bWeight !== aWeight) return bWeight - aWeight;
+        if (bShipments !== aShipments) return bShipments - aShipments;
+        return a.name.localeCompare(b.name);
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [customers, searchQuery, parcelsByCustomer, customerSort]);
 
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === selectedCustomerId) || null,
@@ -241,9 +263,9 @@ export const CustomersScreen: React.FC = () => {
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-2.5 sm:p-3 border border-slate-200 dark:border-slate-800 shadow-xs transition-colors">
-            <div className="relative">
+          {/* Search Bar & Sorting Controls */}
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-2 sm:p-2.5 border border-slate-200 dark:border-slate-800 shadow-xs transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="relative flex-1">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
@@ -260,6 +282,43 @@ export const CustomersScreen: React.FC = () => {
                   <X className="w-4 h-4" />
                 </button>
               )}
+            </div>
+
+            {/* Sorting Segment: By Shipments | By Weight | Name */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-[11px] font-bold shrink-0 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setCustomerSort('shipments')}
+                className={`px-2.5 py-1 rounded-md transition-all ${
+                  customerSort === 'shipments'
+                    ? 'bg-white dark:bg-slate-900 text-[#1E75BB] dark:text-[#2D8AD1] shadow-2xs font-extrabold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                By Shipments
+              </button>
+              <button
+                type="button"
+                onClick={() => setCustomerSort('weight')}
+                className={`px-2.5 py-1 rounded-md transition-all ${
+                  customerSort === 'weight'
+                    ? 'bg-white dark:bg-slate-900 text-[#1E75BB] dark:text-[#2D8AD1] shadow-2xs font-extrabold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                By Weight
+              </button>
+              <button
+                type="button"
+                onClick={() => setCustomerSort('name')}
+                className={`px-2.5 py-1 rounded-md transition-all ${
+                  customerSort === 'name'
+                    ? 'bg-white dark:bg-slate-900 text-[#1E75BB] dark:text-[#2D8AD1] shadow-2xs font-extrabold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                Name
+              </button>
             </div>
           </div>
 

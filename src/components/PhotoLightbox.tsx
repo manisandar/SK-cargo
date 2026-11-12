@@ -104,12 +104,12 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[70] bg-black/92 flex flex-col justify-between select-none animate-in fade-in duration-200"
+      className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-md flex flex-col justify-between select-none animate-in fade-in duration-200"
       onClick={onClose}
     >
       {/* Top Bar: Info, Counter, Optional Delete, Close */}
       <div
-        className="w-full px-4 py-3 flex items-center justify-between text-white shrink-0 bg-gradient-to-b from-black/70 to-transparent z-10"
+        className="w-full px-4 py-3 flex items-center justify-between text-white shrink-0 bg-gradient-to-b from-black/60 to-transparent z-10"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-2 min-w-0">
@@ -187,7 +187,7 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
             key={activePhoto.url}
             src={activePhoto.url}
             alt={activePhoto.title || `Photo ${currentIndex + 1}`}
-            className="max-w-full max-h-[72vh] w-auto h-auto object-contain rounded-xl shadow-2xl transition-opacity duration-150 animate-in fade-in"
+            className="max-w-full max-h-[72vh] w-auto h-auto object-contain rounded-2xl shadow-2xl ring-1 ring-white/25 transition-opacity duration-150 animate-in fade-in"
           />
         </div>
 
@@ -206,7 +206,7 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
 
       {/* Bottom Thumbnail Strip */}
       <div
-        className="w-full px-4 py-3 bg-black/80 shrink-0 border-t border-white/10 z-10"
+        className="w-full px-4 py-3 bg-black/60 backdrop-blur-md shrink-0 border-t border-white/10 z-10"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="max-w-3xl mx-auto flex items-center justify-center gap-2 overflow-x-auto py-1 scrollbar-none">

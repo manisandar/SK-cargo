@@ -24,6 +24,8 @@ export const AdminDashboardScreen: React.FC = () => {
   const [customFrom, setCustomFrom] = useState<string>(getTodayIsoDate());
   const [customTo, setCustomTo] = useState<string>(getTodayIsoDate());
   const [customerSort, setCustomerSort] = useState<'weight' | 'shipments'>('weight');
+  const [graphMetric, setGraphMetric] = useState<'weight' | 'shipments' | 'pieces'>('weight');
+  const [activeDateTooltip, setActiveDateTooltip] = useState<string | null>(null);
 
   const [kpis, setKpis] = useState<AdminKPIData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -100,15 +102,14 @@ export const AdminDashboardScreen: React.FC = () => {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4 space-y-3 sm:space-y-4">
-      {/* Top Header & Period Dropdown Controls */}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
+      {/* Top Header with Refresh Icon right beside Warehouse KPI */}
+      <div className="flex items-center justify-between gap-2">
         <div>
           <div className="flex items-center gap-1.5 sm:gap-2">
             <LayoutDashboard className="w-5 h-5 sm:w-6 sm:h-6 text-[#1E75BB] dark:text-[#2D8AD1] shrink-0" />
             <h2 className="text-lg sm:text-xl font-black text-[#1E75BB] dark:text-[#2D8AD1] tracking-tight">
               {strings.admin.dashboardTitle}
             </h2>
-            {/* Refresh Icon right beside Warehouse KPI */}
             <button
               onClick={loadMetrics}
               title="Refresh metrics immediately"
@@ -121,41 +122,7 @@ export const AdminDashboardScreen: React.FC = () => {
             {strings.admin.dashboardSubtitle}
           </p>
         </div>
-
-        {/* Date Range Dropdown for compact mobile view */}
-        <div className="shrink-0">
-          <select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value as any)}
-            className="px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#1E75BB] shadow-2xs cursor-pointer min-h-[34px]"
-          >
-            <option value="today">{strings.admin.kpiPeriodToday}</option>
-            <option value="week">{strings.admin.kpiPeriodWeek}</option>
-            <option value="month">{strings.admin.kpiPeriodMonth}</option>
-            <option value="all">{strings.admin.kpiPeriodAll}</option>
-            <option value="custom">{strings.admin.kpiPeriodCustom}</option>
-          </select>
-        </div>
       </div>
-
-      {/* Custom Date Range Picker: Compact "Date - Date" without from/to labels */}
-      {period === 'custom' && (
-        <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1.5 shadow-2xs text-xs justify-end w-fit ml-auto animate-in fade-in">
-          <input
-            type="date"
-            value={customFrom}
-            onChange={(e) => setCustomFrom(e.target.value)}
-            className="px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#1E75BB]"
-          />
-          <span className="text-slate-400 font-bold px-0.5">-</span>
-          <input
-            type="date"
-            value={customTo}
-            onChange={(e) => setCustomTo(e.target.value)}
-            className="px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#1E75BB]"
-          />
-        </div>
-      )}
 
       {loading && !kpis ? (
         <div className="p-16 text-center text-xs text-slate-400 flex flex-col items-center gap-2">
@@ -164,32 +131,9 @@ export const AdminDashboardScreen: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* 5 Main KPI Metric Cards (Compact Design) */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-            {/* 1. Dynamic Intake Title */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 sm:p-3.5 shadow-xs space-y-1 sm:space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide truncate">
-                  {getIntakeCardTitle()}
-                </span>
-                <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-[#1E75BB] dark:text-[#2D8AD1] shrink-0">
-                  <PackagePlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
-              </div>
-              <div>
-                <div className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white">
-                  {kpis?.intakePieces || 0} <span className="text-xs font-bold text-slate-500">pcs</span>
-                </div>
-                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 flex items-center justify-between">
-                  <span>{(kpis?.intakeWeightKg || 0).toFixed(1)} kg</span>
-                  <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded">
-                    {kpis?.intakeCount || 0} lots
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. Warehouse Stock (Stored) */}
+          {/* Exactly 4 Main KPI Metric Cards (Clean 4-col desktop, 2x2 mobile) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+            {/* 1. Warehouse Stock (Stored) */}
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 sm:p-3.5 shadow-xs space-y-1 sm:space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] sm:text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide truncate">
@@ -212,7 +156,7 @@ export const AdminDashboardScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* 3. In Transit */}
+            {/* 2. In Transit */}
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 sm:p-3.5 shadow-xs space-y-1 sm:space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] sm:text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide truncate">
@@ -235,7 +179,7 @@ export const AdminDashboardScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* 4. Delivered */}
+            {/* 3. Delivered */}
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 sm:p-3.5 shadow-xs space-y-1 sm:space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] sm:text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide truncate">
@@ -258,8 +202,8 @@ export const AdminDashboardScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* 5. Returned */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 sm:p-3.5 shadow-xs space-y-1 sm:space-y-1.5 col-span-2 sm:col-span-1">
+            {/* 4. Returned */}
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 sm:p-3.5 shadow-xs space-y-1 sm:space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] sm:text-[11px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wide truncate">
                   {strings.admin.kpiReturnedTitle}
@@ -285,6 +229,198 @@ export const AdminDashboardScreen: React.FC = () => {
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Graph Box with Intake Summary, Date Dropdown, and Weight/Shipment Trends */}
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 sm:p-4 shadow-xs space-y-3">
+            {/* Graph Box Header: Dynamic Intake Title, Stats Pills, Date Dropdown */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-[#1E75BB] dark:text-[#2D8AD1] shrink-0">
+                    <PackagePlus className="w-4 h-4" />
+                  </div>
+                  <h3 className="font-black text-sm sm:text-base text-slate-900 dark:text-white tracking-tight">
+                    {getIntakeCardTitle()}
+                  </h3>
+
+                  {/* Summary Intake Badges */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-[#1E75BB] dark:text-blue-300 border border-blue-200/60 dark:border-blue-800 text-[11px] font-black">
+                      {kpis?.intakePieces || 0} pcs
+                    </span>
+                    <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[11px] font-bold">
+                      {(kpis?.intakeWeightKg || 0).toFixed(1)} kg
+                    </span>
+                    <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[11px] font-mono font-semibold">
+                      {kpis?.intakeCount || 0} shipments
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Date Filter & Metric Toggle Controls */}
+              <div className="flex items-center gap-2 flex-wrap justify-between sm:justify-end">
+                {/* Graph Metric Toggle: Weight vs Shipments vs Pieces */}
+                <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-[10px] font-bold shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setGraphMetric('weight')}
+                    className={`px-2 py-1 rounded-md transition-all ${
+                      graphMetric === 'weight'
+                        ? 'bg-white dark:bg-slate-900 text-[#1E75BB] dark:text-[#2D8AD1] shadow-2xs font-extrabold'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    Weight (kg)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGraphMetric('shipments')}
+                    className={`px-2 py-1 rounded-md transition-all ${
+                      graphMetric === 'shipments'
+                        ? 'bg-white dark:bg-slate-900 text-[#1E75BB] dark:text-[#2D8AD1] shadow-2xs font-extrabold'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    Shipments
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGraphMetric('pieces')}
+                    className={`px-2 py-1 rounded-md transition-all ${
+                      graphMetric === 'pieces'
+                        ? 'bg-white dark:bg-slate-900 text-[#1E75BB] dark:text-[#2D8AD1] shadow-2xs font-extrabold'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    Pieces
+                  </button>
+                </div>
+
+                {/* Period Dropdown inside Graph Box */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <select
+                    value={period}
+                    onChange={(e) => setPeriod(e.target.value as any)}
+                    className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#1E75BB] shadow-2xs cursor-pointer min-h-[30px]"
+                  >
+                    <option value="today">{strings.admin.kpiPeriodToday}</option>
+                    <option value="week">{strings.admin.kpiPeriodWeek}</option>
+                    <option value="month">{strings.admin.kpiPeriodMonth}</option>
+                    <option value="all">{strings.admin.kpiPeriodAll}</option>
+                    <option value="custom">{strings.admin.kpiPeriodCustom}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Custom Range compact pickers: "[date] - [date]" if period === 'custom' */}
+            {period === 'custom' && (
+              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg p-1.5 text-xs justify-end w-fit ml-auto animate-in fade-in">
+                <input
+                  type="date"
+                  value={customFrom}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                  className="px-2 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#1E75BB]"
+                />
+                <span className="text-slate-400 font-bold px-0.5">-</span>
+                <input
+                  type="date"
+                  value={customTo}
+                  onChange={(e) => setCustomTo(e.target.value)}
+                  className="px-2 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#1E75BB]"
+                />
+              </div>
+            )}
+
+            {/* The Visual Trend Chart */}
+            <div className="pt-2">
+              {!kpis?.dailyTrends || kpis.dailyTrends.length === 0 ? (
+                <div className="h-40 flex flex-col items-center justify-center text-slate-400 text-xs font-medium border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                  <span>No cargo intake recorded for this period</span>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <div className="h-44 sm:h-48 w-full flex items-end justify-start gap-2 sm:gap-3 px-2 pt-6 pb-2 overflow-x-auto scrollbar-thin">
+                    {(() => {
+                      const maxVal = Math.max(
+                        ...kpis.dailyTrends.map((t) =>
+                          graphMetric === 'weight'
+                            ? t.weightKg
+                            : graphMetric === 'shipments'
+                            ? t.lotsCount
+                            : t.pieces
+                        ),
+                        1
+                      );
+
+                      return kpis.dailyTrends.map((d) => {
+                        const val =
+                          graphMetric === 'weight'
+                            ? d.weightKg
+                            : graphMetric === 'shipments'
+                            ? d.lotsCount
+                            : d.pieces;
+                        const heightPct = Math.max(Math.round((val / maxVal) * 100), 8);
+                        const isHovered = activeDateTooltip === d.date;
+
+                        return (
+                          <div
+                            key={d.date}
+                            onMouseEnter={() => setActiveDateTooltip(d.date)}
+                            onMouseLeave={() => setActiveDateTooltip(null)}
+                            onClick={() => setActiveDateTooltip(activeDateTooltip === d.date ? null : d.date)}
+                            className="flex-1 min-w-[46px] max-w-[80px] h-full flex flex-col justify-end items-center group cursor-pointer relative"
+                          >
+                            {/* Hover / Tap Tooltip */}
+                            {isHovered && (
+                              <div className="absolute -top-11 z-30 bg-slate-900 text-white dark:bg-white dark:text-slate-900 text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-xl whitespace-nowrap pointer-events-none animate-in fade-in zoom-in-95 border border-slate-700 dark:border-slate-200">
+                                <div>{d.displayDate} ({d.date})</div>
+                                <div className="text-blue-300 dark:text-blue-600 font-extrabold">
+                                  {d.weightKg} kg • {d.lotsCount} lots • {d.pieces} pcs
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Value Above Bar */}
+                            <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 mb-1 group-hover:text-[#1E75BB] dark:group-hover:text-[#2D8AD1] transition-colors truncate">
+                              {graphMetric === 'weight'
+                                ? `${d.weightKg}`
+                                : graphMetric === 'shipments'
+                                ? `${d.lotsCount}`
+                                : `${d.pieces}`}
+                              <span className="text-[8px] font-normal text-slate-400 ml-0.5">
+                                {graphMetric === 'weight' ? 'kg' : graphMetric === 'shipments' ? 'lots' : 'pcs'}
+                              </span>
+                            </span>
+
+                            {/* The Bar */}
+                            <div className="w-full h-full flex items-end">
+                              <div
+                                style={{ height: `${heightPct}%` }}
+                                className={`w-full rounded-t-lg transition-all duration-300 group-hover:brightness-110 shadow-xs ${
+                                  graphMetric === 'weight'
+                                    ? 'bg-gradient-to-t from-[#1E75BB] to-[#38A0EE]'
+                                    : graphMetric === 'shipments'
+                                    ? 'bg-gradient-to-t from-[#ED7D24] to-[#FBA861]'
+                                    : 'bg-gradient-to-t from-emerald-600 to-emerald-400'
+                                } ${isHovered ? 'ring-2 ring-[#1E75BB] ring-offset-1' : ''}`}
+                              />
+                            </div>
+
+                            {/* Date Label Under Bar */}
+                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 truncate">
+                              {d.displayDate}
+                            </span>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

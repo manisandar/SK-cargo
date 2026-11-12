@@ -1720,10 +1720,10 @@ export class LocalRepository implements IRepository {
 
     let intakeParcels = allParcels;
     if (dateRange?.from) {
-      intakeParcels = intakeParcels.filter((p) => p.received_at >= dateRange.from!);
+      intakeParcels = intakeParcels.filter((p) => (p.received_at || '').split('T')[0] >= dateRange.from!);
     }
     if (dateRange?.to) {
-      intakeParcels = intakeParcels.filter((p) => p.received_at <= dateRange.to!);
+      intakeParcels = intakeParcels.filter((p) => (p.received_at || '').split('T')[0] <= dateRange.to!);
     }
 
     let intakePieces = 0;
@@ -1762,18 +1762,58 @@ export class LocalRepository implements IRepository {
         returnedCount++;
         returnedPieces += p.total_qty;
         returnedWeightKg += p.total_weight_kg;
-      } else if (p.status === 'delivered') {
-        deliveredParcelsCount++;
-        deliveredPieces += p.total_qty;
-        deliveredWeightKg += p.total_weight_kg;
-      } else if (p.status === 'in_transit') {
-        inTransitParcelsCount++;
-        inTransitWeightKg += p.total_weight_kg;
-      } else if (p.breakdown.stored_qty > 0) {
-        storedParcelsCount++;
-        storedPieces += p.breakdown.stored_qty;
-        const storedRatio = p.total_qty > 0 ? p.breakdown.stored_qty / p.total_qty : 1;
-        storedWeightKg += Number((p.total_weight_kg * storedRatio).toFixed(1));
+      } else {
+        // Warehouse Stock: Count any parcel that still has pieces stored in warehouse
+        if (p.breakdown.stored_qty > 0) {
+          storedParcelsCount++;
+          storedPieces += p.breakdown.stored_qty;
+          let weight = 0;
+          if (p.items && p.items.length > 0) {
+            for (const it of p.items) {
+              const unitW = it.weight_per_piece_kg || (it.qty > 0 ? it.weight_kg / it.qty : 0);
+              weight += (it.stored_qty || 0) * unitW;
+            }
+          }
+          if (weight === 0 && p.total_qty > 0) {
+            weight = p.total_weight_kg * (p.breakdown.stored_qty / p.total_qty);
+          }
+          storedWeightKg += weight;
+        }
+
+        // In Transit: Count pieces currently in transit
+        if (p.breakdown.in_transit_qty > 0 || p.status === 'in_transit') {
+          inTransitParcelsCount++;
+          let weight = 0;
+          if (p.items && p.items.length > 0) {
+            for (const it of p.items) {
+              const unitW = it.weight_per_piece_kg || (it.qty > 0 ? it.weight_kg / it.qty : 0);
+              weight += (it.in_transit_qty || 0) * unitW;
+            }
+          }
+          if (weight === 0 && p.total_qty > 0) {
+            const inTransitQty = p.breakdown.in_transit_qty || p.total_qty;
+            weight = p.total_weight_kg * (inTransitQty / p.total_qty);
+          }
+          inTransitWeightKg += weight;
+        }
+
+        // Delivered: Count pieces delivered
+        if (p.breakdown.delivered_qty > 0 || p.status === 'delivered') {
+          deliveredParcelsCount++;
+          const dQty = p.breakdown.delivered_qty || p.total_qty;
+          deliveredPieces += dQty;
+          let weight = 0;
+          if (p.items && p.items.length > 0) {
+            for (const it of p.items) {
+              const unitW = it.weight_per_piece_kg || (it.qty > 0 ? it.weight_kg / it.qty : 0);
+              weight += (it.delivered_qty || 0) * unitW;
+            }
+          }
+          if (weight === 0 && p.total_qty > 0) {
+            weight = p.total_weight_kg * (dQty / p.total_qty);
+          }
+          deliveredWeightKg += weight;
+        }
       }
 
       if (p.customer_id) {
@@ -1809,7 +1849,7 @@ export class LocalRepository implements IRepository {
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     for (const p of intakeParcels) {
-      const d = p.received_at ? p.received_at.split('T')[0] : '2026-11-11';
+      const d = p.received_at ? p.received_at.split('T')[0] : getTodayIsoDate();
       const prev = dailyMap.get(d) || { pieces: 0, weight: 0, count: 0 };
       prev.pieces += p.total_qty || 0;
       prev.weight += p.total_weight_kg || 0;
