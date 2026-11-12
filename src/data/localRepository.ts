@@ -1857,11 +1857,19 @@ export class LocalRepository implements IRepository {
       dailyMap.set(d, prev);
     }
 
+    // Check if dates in trends span multiple years
+    const uniqueYears = new Set(Array.from(dailyMap.keys()).map((d) => d.split('-')[0]));
+    const hasMultipleYears = uniqueYears.size > 1;
+
     const dailyTrends = Array.from(dailyMap.entries())
       .map(([date, data]) => {
         const parts = date.split('-');
+        const y = parts[0];
         const m = parseInt(parts[1], 10) - 1;
-        const displayDate = `${parts[2]} ${monthNames[m] || ''}`;
+        const d = parts[2];
+        const displayDate = hasMultipleYears
+          ? `${d} ${monthNames[m] || ''} '${y.slice(2)}`
+          : `${d} ${monthNames[m] || ''}`;
         return {
           date,
           displayDate,

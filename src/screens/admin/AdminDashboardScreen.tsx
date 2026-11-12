@@ -16,6 +16,7 @@ import {
   ChevronRight,
   ChevronDown,
   Download,
+  Calendar,
 } from 'lucide-react';
 
 export const AdminDashboardScreen: React.FC = () => {
@@ -27,7 +28,7 @@ export const AdminDashboardScreen: React.FC = () => {
   const [customTo, setCustomTo] = useState<string>(getTodayIsoDate());
   const [customerSort, setCustomerSort] = useState<'weight' | 'shipments'>('weight');
   const [graphMetric, setGraphMetric] = useState<'weight' | 'shipments' | 'pieces'>('weight');
-  const [activeDateTooltip, setActiveDateTooltip] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const [kpis, setKpis] = useState<AdminKPIData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -102,6 +103,38 @@ export const AdminDashboardScreen: React.FC = () => {
       .sort((a, b) => b.totalWeightKg - a.totalWeightKg || b.parcelsCount - a.parcelsCount)
       .slice(0, 5);
   }, [kpis?.topCustomers, customerSort]);
+
+  // Default selected date to latest trend item
+  useEffect(() => {
+    if (kpis?.dailyTrends && kpis.dailyTrends.length > 0) {
+      setSelectedDate(kpis.dailyTrends[kpis.dailyTrends.length - 1].date);
+    } else {
+      setSelectedDate(null);
+    }
+  }, [kpis?.dailyTrends]);
+
+  const activeTrendItem = useMemo(() => {
+    if (!kpis?.dailyTrends || kpis.dailyTrends.length === 0) return null;
+    return (
+      kpis.dailyTrends.find((t) => t.date === selectedDate) ||
+      kpis.dailyTrends[kpis.dailyTrends.length - 1]
+    );
+  }, [kpis?.dailyTrends, selectedDate]);
+
+  const maxVal = useMemo(() => {
+    if (!kpis?.dailyTrends || kpis.dailyTrends.length === 0) return 10;
+    const values = kpis.dailyTrends.map((t) =>
+      graphMetric === 'weight' ? t.weightKg : graphMetric === 'shipments' ? t.lotsCount : t.pieces
+    );
+    const max = Math.max(...values, 0);
+    return max <= 0 ? 10 : Math.ceil(max * 1.15);
+  }, [kpis?.dailyTrends, graphMetric]);
+
+  const midVal = useMemo(() => {
+    return Math.round((maxVal / 2) * 10) / 10;
+  }, [maxVal]);
+
+  const metricUnit = graphMetric === 'weight' ? 'kg' : graphMetric === 'shipments' ? 'lots' : 'pcs';
 
   // Export Unified Operations & Audit CSV in decreasing date order
   const handleExportCSV = async () => {
@@ -574,89 +607,106 @@ export const AdminDashboardScreen: React.FC = () => {
               </div>
             )}
 
-            {/* The Visual Trend Chart */}
-            <div className="pt-2">
+            {/* The Visual Trend Chart with Y-Axis and Selected Date Inspection */}
+            <div className="pt-2 space-y-2">
               {!kpis?.dailyTrends || kpis.dailyTrends.length === 0 ? (
-                <div className="h-40 flex flex-col items-center justify-center text-slate-400 text-xs font-medium border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                <div className="h-44 flex flex-col items-center justify-center text-slate-400 text-xs font-medium border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
                   <span>No cargo intake recorded for this period</span>
                 </div>
               ) : (
-                <div className="space-y-1">
-                  <div className="h-44 sm:h-48 w-full flex items-end justify-start gap-2 sm:gap-3 px-2 pt-6 pb-2 overflow-x-auto scrollbar-thin">
-                    {(() => {
-                      const maxVal = Math.max(
-                        ...kpis.dailyTrends.map((t) =>
-                          graphMetric === 'weight'
-                            ? t.weightKg
-                            : graphMetric === 'shipments'
-                            ? t.lotsCount
-                            : t.pieces
-                        ),
-                        1
-                      );
+                <div className="space-y-2">
+                  {/* Selected Date Metric Inspection Card */}
+                  {activeTrendItem && (
+                    <div className="flex items-center justify-between text-xs px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200/80 dark:border-slate-700/80 flex-wrap gap-2 animate-in fade-in">
+                      <span className="font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-[#1E75BB] dark:text-[#2D8AD1]" />
+                        <span>{activeTrendItem.displayDate} ({activeTrendItem.date})</span>
+                      </span>
+                      <div className="flex items-center gap-2 font-mono text-[11px] text-slate-600 dark:text-slate-300">
+                        <span className="font-extrabold text-[#1E75BB] dark:text-[#2D8AD1]">
+                          {activeTrendItem.weightKg.toFixed(2)} kg
+                        </span>
+                        <span>•</span>
+                        <span className="font-bold">
+                          {activeTrendItem.lotsCount} lots
+                        </span>
+                        <span>•</span>
+                        <span className="font-bold">
+                          {activeTrendItem.pieces} pcs
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
-                      return kpis.dailyTrends.map((d) => {
-                        const val =
-                          graphMetric === 'weight'
-                            ? d.weightKg
-                            : graphMetric === 'shipments'
-                            ? d.lotsCount
-                            : d.pieces;
-                        const heightPct = Math.max(Math.round((val / maxVal) * 100), 8);
-                        const isHovered = activeDateTooltip === d.date;
+                  {/* Chart Stage with Y-Axis on Left */}
+                  <div className="flex items-stretch h-48 pt-3 pb-1">
+                    {/* Y-Axis Column */}
+                    <div className="w-12 sm:w-14 shrink-0 flex flex-col justify-between text-[10px] text-slate-400 dark:text-slate-500 font-mono text-right pr-2 select-none h-[calc(100%-24px)]">
+                      <span>{maxVal} {metricUnit}</span>
+                      <span>{midVal}</span>
+                      <span>0</span>
+                    </div>
 
-                        return (
-                          <div
-                            key={d.date}
-                            onMouseEnter={() => setActiveDateTooltip(d.date)}
-                            onMouseLeave={() => setActiveDateTooltip(null)}
-                            onClick={() => setActiveDateTooltip(activeDateTooltip === d.date ? null : d.date)}
-                            className="flex-1 min-w-[46px] max-w-[80px] h-full flex flex-col justify-end items-center group cursor-pointer relative"
-                          >
-                            {/* Hover / Tap Tooltip */}
-                            {isHovered && (
-                              <div className="absolute -top-11 z-30 bg-slate-900 text-white dark:bg-white dark:text-slate-900 text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-xl whitespace-nowrap pointer-events-none animate-in fade-in zoom-in-95 border border-slate-700 dark:border-slate-200">
-                                <div>{d.displayDate} ({d.date})</div>
-                                <div className="text-blue-300 dark:text-blue-600 font-extrabold">
-                                  {d.weightKg.toFixed(2)} kg • {d.lotsCount} lots • {d.pieces} pcs
-                                </div>
+                    {/* Bars & Grid Lines Container */}
+                    <div className="relative flex-1 h-full overflow-x-auto scrollbar-thin">
+                      {/* Horizontal Grid Guidelines */}
+                      <div className="absolute inset-x-0 top-0 border-t border-dashed border-slate-200 dark:border-slate-800 pointer-events-none" />
+                      <div className="absolute inset-x-0 top-[calc(50%-12px)] border-t border-dashed border-slate-200 dark:border-slate-800 pointer-events-none" />
+                      <div className="absolute inset-x-0 bottom-[24px] border-b border-slate-300 dark:border-slate-700 pointer-events-none" />
+
+                      {/* Bar Columns */}
+                      <div className="h-full flex items-end justify-start gap-2 sm:gap-3 px-1 min-w-fit">
+                        {kpis.dailyTrends.map((d) => {
+                          const val =
+                            graphMetric === 'weight'
+                              ? d.weightKg
+                              : graphMetric === 'shipments'
+                              ? d.lotsCount
+                              : d.pieces;
+                          const heightPct = Math.max(Math.round((val / maxVal) * 100), val > 0 ? 4 : 0);
+                          const isSelected = (activeTrendItem?.date === d.date);
+
+                          return (
+                            <div
+                              key={d.date}
+                              onClick={() => setSelectedDate(d.date)}
+                              onMouseEnter={() => setSelectedDate(d.date)}
+                              className="flex-1 min-w-[46px] max-w-[80px] h-full flex flex-col justify-end items-center group cursor-pointer"
+                              title={`${d.displayDate}: ${d.weightKg.toFixed(2)} kg, ${d.lotsCount} lots, ${d.pieces} pcs`}
+                            >
+                              {/* The Bar (Clean, no text on top) */}
+                              <div className="w-full h-[calc(100%-24px)] flex items-end">
+                                <div
+                                  style={{ height: `${heightPct}%` }}
+                                  className={`w-full rounded-t-lg transition-all duration-200 shadow-2xs ${
+                                    graphMetric === 'weight'
+                                      ? 'bg-gradient-to-t from-[#1E75BB] to-[#38A0EE]'
+                                      : graphMetric === 'shipments'
+                                      ? 'bg-gradient-to-t from-[#ED7D24] to-[#FBA861]'
+                                      : 'bg-gradient-to-t from-emerald-600 to-emerald-400'
+                                  } ${
+                                    isSelected
+                                      ? 'ring-2 ring-[#1E75BB] dark:ring-[#2D8AD1] brightness-110 shadow-md'
+                                      : 'group-hover:brightness-105 opacity-85'
+                                  }`}
+                                />
                               </div>
-                            )}
 
-                            {/* Value Above Bar */}
-                            <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 mb-1 group-hover:text-[#1E75BB] dark:group-hover:text-[#2D8AD1] transition-colors truncate">
-                              {graphMetric === 'weight'
-                                ? `${d.weightKg.toFixed(2)}`
-                                : graphMetric === 'shipments'
-                                ? `${d.lotsCount}`
-                                : `${d.pieces}`}
-                              <span className="text-[8px] font-normal text-slate-400 ml-0.5">
-                                {graphMetric === 'weight' ? 'kg' : graphMetric === 'shipments' ? 'lots' : 'pcs'}
-                              </span>
-                            </span>
-
-                            {/* The Bar */}
-                            <div className="w-full h-full flex items-end">
-                              <div
-                                style={{ height: `${heightPct}%` }}
-                                className={`w-full rounded-t-lg transition-all duration-300 group-hover:brightness-110 shadow-xs ${
-                                  graphMetric === 'weight'
-                                    ? 'bg-gradient-to-t from-[#1E75BB] to-[#38A0EE]'
-                                    : graphMetric === 'shipments'
-                                    ? 'bg-gradient-to-t from-[#ED7D24] to-[#FBA861]'
-                                    : 'bg-gradient-to-t from-emerald-600 to-emerald-400'
-                                } ${isHovered ? 'ring-2 ring-[#1E75BB] ring-offset-1' : ''}`}
-                              />
+                              {/* Date Label on X-Axis (Includes year if multi-year) */}
+                              <div className="h-6 flex items-center justify-center">
+                                <span className={`text-[10px] truncate transition-colors ${
+                                  isSelected
+                                    ? 'font-black text-[#1E75BB] dark:text-[#2D8AD1]'
+                                    : 'font-semibold text-slate-500 dark:text-slate-400 group-hover:text-slate-800'
+                                }`}>
+                                  {d.displayDate}
+                                </span>
+                              </div>
                             </div>
-
-                            {/* Date Label Under Bar */}
-                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1.5 truncate">
-                              {d.displayDate}
-                            </span>
-                          </div>
-                        );
-                      });
-                    })()}
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
