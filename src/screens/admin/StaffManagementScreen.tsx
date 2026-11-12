@@ -11,6 +11,7 @@ import {
   X,
   Loader2,
   Check,
+  ChevronDown,
 } from 'lucide-react';
 
 export const StaffManagementScreen: React.FC = () => {
@@ -298,14 +299,17 @@ export const StaffManagementScreen: React.FC = () => {
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
                   {strings.admin.roleLabel}
                 </label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as 'staff' | 'admin')}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-100"
-                >
-                  <option value="staff">{strings.auth.roleStaff}</option>
-                  <option value="admin">{strings.auth.roleAdmin}</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as 'staff' | 'admin')}
+                    className="w-full appearance-none pl-3 pr-8 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#1E75BB] cursor-pointer"
+                  >
+                    <option value="staff">{strings.auth.roleStaff}</option>
+                    <option value="admin">{strings.auth.roleAdmin}</option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
               </div>
 
               <div>
@@ -400,15 +404,18 @@ export const StaffManagementScreen: React.FC = () => {
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
                   {strings.admin.roleLabel}
                 </label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as 'staff' | 'admin')}
-                  disabled={editingStaff.id === currentUser?.id}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-100 disabled:opacity-50"
-                >
-                  <option value="staff">{strings.auth.roleStaff}</option>
-                  <option value="admin">{strings.auth.roleAdmin}</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as 'staff' | 'admin')}
+                    disabled={editingStaff.id === currentUser?.id}
+                    className="w-full appearance-none pl-3 pr-8 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-100 disabled:opacity-50 focus:outline-none focus:border-[#1E75BB] cursor-pointer"
+                  >
+                    <option value="staff">{strings.auth.roleStaff}</option>
+                    <option value="admin">{strings.auth.roleAdmin}</option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
                 {editingStaff.id === currentUser?.id && (
                   <p className="text-[10px] text-slate-400 mt-1">
                     You cannot change your own admin role.

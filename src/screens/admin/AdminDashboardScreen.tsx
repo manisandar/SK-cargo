@@ -14,6 +14,7 @@ import {
   Loader2,
   Users,
   ChevronRight,
+  ChevronDown,
   Download,
 } from 'lucide-react';
 
@@ -537,11 +538,11 @@ export const AdminDashboardScreen: React.FC = () => {
                 </div>
 
                 {/* Period Dropdown inside Graph Box */}
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="relative inline-flex items-center shrink-0">
                   <select
                     value={period}
                     onChange={(e) => setPeriod(e.target.value as any)}
-                    className="px-2.5 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#1E75BB] shadow-2xs cursor-pointer min-h-[30px]"
+                    className="appearance-none pl-3 pr-8 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#1E75BB] focus:ring-1 focus:ring-[#1E75BB] shadow-2xs cursor-pointer min-h-[32px] leading-tight"
                   >
                     <option value="today">{strings.admin.kpiPeriodToday}</option>
                     <option value="week">{strings.admin.kpiPeriodWeek}</option>
@@ -549,6 +550,7 @@ export const AdminDashboardScreen: React.FC = () => {
                     <option value="all">{strings.admin.kpiPeriodAll}</option>
                     <option value="custom">{strings.admin.kpiPeriodCustom}</option>
                   </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
             </div>

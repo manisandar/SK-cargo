@@ -13,6 +13,7 @@ import {
   Download,
   X,
   ArrowRight,
+  ChevronDown,
 } from 'lucide-react';
 
 export const AuditLogsScreen: React.FC = () => {
@@ -163,18 +164,21 @@ export const AuditLogsScreen: React.FC = () => {
             <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
               {strings.admin.filterStaff}
             </label>
-            <select
-              value={selectedStaffId}
-              onChange={(e) => setSelectedStaffId(e.target.value)}
-              className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-200"
-            >
-              <option value="all">{strings.admin.allStaff}</option>
-              {staffUsers.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name} (@{u.username})
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={selectedStaffId}
+                onChange={(e) => setSelectedStaffId(e.target.value)}
+                className="w-full appearance-none pl-3 pr-8 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#1E75BB] focus:ring-1 focus:ring-[#1E75BB] cursor-pointer"
+              >
+                <option value="all">{strings.admin.allStaff}</option>
+                {staffUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} (@{u.username})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
 
           {/* Entity Type Filter */}
@@ -182,17 +186,20 @@ export const AuditLogsScreen: React.FC = () => {
             <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
               {strings.admin.filterEntity}
             </label>
-            <select
-              value={selectedEntityType}
-              onChange={(e) => setSelectedEntityType(e.target.value)}
-              className="w-full px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-200"
-            >
-              <option value="all">{strings.admin.allEntities}</option>
-              <option value="parcel">{strings.admin.entityParcel}</option>
-              <option value="box">{strings.admin.entityBox}</option>
-              <option value="courier">{strings.admin.entityCourier}</option>
-              <option value="customer">{strings.admin.entityCustomer}</option>
-            </select>
+            <div className="relative">
+              <select
+                value={selectedEntityType}
+                onChange={(e) => setSelectedEntityType(e.target.value)}
+                className="w-full appearance-none pl-3 pr-8 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-[#1E75BB] focus:ring-1 focus:ring-[#1E75BB] cursor-pointer"
+              >
+                <option value="all">{strings.admin.allEntities}</option>
+                <option value="parcel">{strings.admin.entityParcel}</option>
+                <option value="box">{strings.admin.entityBox}</option>
+                <option value="courier">{strings.admin.entityCourier}</option>
+                <option value="customer">{strings.admin.entityCustomer}</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
 
           {/* Date From */}
