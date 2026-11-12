@@ -12,18 +12,42 @@
   --cargo-line: #D8E6F3;
 }
 
+/* Root container: USE overflow-x: clip so position: sticky is NEVER broken */
+html,
+body {
+  max-width: 100vw;
+  overflow-x: clip;
+}
+
 .landing-root {
   color: var(--cargo-ink);
   background: #FFFFFF;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  overflow-x: hidden;
+  overflow-x: clip;
+  max-width: 100vw;
+  width: 100%;
   line-height: 1.65;
 }
 
-/* Burmese typography with Noto Serif Myanmar */
+/* Hero Headline Responsive Sizing */
+.landing-hero-headline {
+  font-size: clamp(2.1rem, 5.5vw, 3.75rem);
+  line-height: 1.25;
+}
+
+/* Myanmar Typography Vertical Alignment Optimization */
 .landing-root[data-lang="my"] {
   font-family: 'Noto Serif Myanmar', serif;
-  line-height: 1.95;
+  line-height: 1.85;
+}
+
+.landing-root[data-lang="my"] .landing-hero-headline {
+  font-family: 'Noto Serif Myanmar', serif !important;
+  font-size: clamp(1.4rem, 4.8vw, 2.75rem) !important;
+  line-height: 1.85 !important;
+  letter-spacing: 0 !important;
+  word-break: normal;
+  overflow-wrap: break-word;
 }
 
 .landing-root[data-lang="my"] h1,
@@ -31,12 +55,72 @@
 .landing-root[data-lang="my"] h3,
 .landing-root[data-lang="my"] .font-heading {
   font-family: 'Noto Serif Myanmar', serif !important;
-  line-height: 1.45 !important;
+  line-height: 1.6 !important;
   letter-spacing: 0 !important;
+}
+
+/* Compensate Burmese font baseline shift so it aligns optically with English */
+.landing-root[data-lang="my"] .landing-btn {
+  padding-top: 15px;
+  padding-bottom: 13px;
+  line-height: 1.25;
+}
+
+.landing-root[data-lang="my"] .landing-chip {
+  padding-top: 12px;
+  padding-bottom: 10px;
+}
+
+.landing-root[data-lang="my"] .landing-tag {
+  padding-top: 9px;
+  padding-bottom: 7px;
+}
+
+.landing-root[data-lang="my"] nav a {
+  padding-top: 3px;
+}
+
+.landing-root[data-lang="my"] .landing-stop h3 {
+  padding-top: 2px;
+  line-height: 1.35;
 }
 
 .font-heading {
   font-family: 'Space Grotesk', sans-serif;
+}
+
+/* Language Pill Buttons Optical Alignment */
+.lang-pill-btn {
+  height: 28px;
+  min-width: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  line-height: 1;
+}
+
+@media (min-width: 640px) {
+  .lang-pill-btn {
+    height: 30px;
+    min-width: 54px;
+    font-size: 0.82rem;
+  }
+}
+
+.lang-pill-btn-en {
+  font-family: 'Space Grotesk', sans-serif;
+  padding-top: 0px;
+}
+
+/* Add optical offset for Burmese so မြန်မာ aligns with EN */
+.lang-pill-btn-my {
+  font-family: 'Noto Serif Myanmar', serif;
+  padding-top: 3px;
+  /* Critical fix for Myanmar font ascender/descender alignment */
 }
 
 /* Perspective Grid Floor */
@@ -44,11 +128,11 @@
   position: absolute;
   left: -30%;
   right: -30%;
-  bottom: -8%;
-  height: 55%;
+  bottom: -6%;
+  height: 52%;
   transform: perspective(500px) rotateX(62deg);
   transform-origin: bottom;
-  background-image: 
+  background-image:
     linear-gradient(rgba(30, 117, 187, 0.28) 1px, transparent 1px),
     linear-gradient(90deg, rgba(30, 117, 187, 0.28) 1px, transparent 1px);
   background-size: 70px 70px;
@@ -59,7 +143,9 @@
 }
 
 @keyframes landingGrid {
-  to { background-position: 0 70px; }
+  to {
+    background-position: 0 70px;
+  }
 }
 
 /* Drift Glow Blobs */
@@ -71,6 +157,7 @@
   animation: landingDrift 14s ease-in-out infinite alternate;
   pointer-events: none;
 }
+
 .landing-blob-1 {
   width: 400px;
   height: 400px;
@@ -78,6 +165,7 @@
   top: -80px;
   right: 5%;
 }
+
 .landing-blob-2 {
   width: 320px;
   height: 320px;
@@ -89,7 +177,9 @@
 }
 
 @keyframes landingDrift {
-  to { transform: translate(-45px, 55px) scale(1.18); }
+  to {
+    transform: translate(-45px, 55px) scale(1.18);
+  }
 }
 
 /* Animated Flowing Gradient Text */
@@ -100,10 +190,37 @@
   background-clip: text;
   color: transparent;
   animation: landingFlow 7s linear infinite;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  display: block;
+}
+
+@media (min-width: 640px) {
+  .landing-gradient-text {
+    display: inline;
+  }
+}
+
+/* Extra line-box headroom for complex Myanmar vowels, subjoined consonants, and asats */
+.landing-root[data-lang="my"] .landing-gradient-text {
+  display: block;
+  padding: 0.15em 0.08em;
+  margin-top: 0.05em;
+  line-height: 1.85;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+@media (min-width: 640px) {
+  .landing-root[data-lang="my"] .landing-gradient-text {
+    display: inline-block;
+  }
 }
 
 @keyframes landingFlow {
-  to { background-position: 300% 0; }
+  to {
+    background-position: 300% 0;
+  }
 }
 
 /* Pulsing Badge Dot */
@@ -116,13 +233,19 @@
 }
 
 @keyframes landingPulse {
-  0% { box-shadow: 0 0 0 0 rgba(229, 168, 0, 0.7); }
-  70%, 100% { box-shadow: 0 0 0 10px transparent; }
+  0% {
+    box-shadow: 0 0 0 0 rgba(229, 168, 0, 0.7);
+  }
+
+  70%,
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
 }
 
-/* 3D Isometric Cargo Stage */
+/* 3D Isometric Hero Stage with Central SK Cargo Truck */
 .landing-stage {
-  height: 460px;
+  height: 440px;
   perspective: 1100px;
   position: relative;
 }
@@ -132,102 +255,1780 @@
   inset: 0;
   transform-style: preserve-3d;
   transition: transform 0.15s ease-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.landing-cube {
+/* Central 3D SK Cargo Truck */
+.landing-center-truck-wrapper {
   position: absolute;
-  width: var(--s, 150px);
-  height: var(--s, 150px);
   left: 50%;
   top: 50%;
-  margin: calc(var(--s, 150px) / -2) 0 0 calc(var(--s, 150px) / -2);
+  width: 280px;
+  height: 220px;
+  margin: -120px 0 0 -160px;
   transform-style: preserve-3d;
-  animation: landingSpin var(--d, 16s) linear infinite;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: truckHover 4s ease-in-out infinite;
+  pointer-events: none;
 }
 
-.landing-cube b {
+@keyframes truckHover {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+/* 2D Projected Elliptical Dash Ring Line */
+.landing-ringline {
   position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font: 700 calc(var(--s, 150px) / 5) / 1 'Space Grotesk', sans-serif;
-  color: #fff;
-  background: linear-gradient(135deg, #1E75BB, #0F4C81);
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  box-shadow: inset 0 0 calc(var(--s, 150px) / 3) rgba(0, 0, 0, 0.25);
-  backface-visibility: visible;
+  left: 50%;
+  top: 50%;
+  width: 460px;
+  height: 172px;
+  margin: -86px 0 0 -230px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(30, 117, 187, 0.45);
+  pointer-events: none;
+  z-index: 4;
 }
 
-.landing-cube b:nth-child(1) { transform: translateZ(calc(var(--s, 150px) / 2)); }
-.landing-cube b:nth-child(2) { transform: rotateY(180deg) translateZ(calc(var(--s, 150px) / 2)); }
-.landing-cube b:nth-child(3) { transform: rotateY(90deg) translateZ(calc(var(--s, 150px) / 2)); filter: brightness(0.85); }
-.landing-cube b:nth-child(4) { transform: rotateY(-90deg) translateZ(calc(var(--s, 150px) / 2)); filter: brightness(0.85); }
-.landing-cube b:nth-child(5) { transform: rotateX(90deg) translateZ(calc(var(--s, 150px) / 2)); filter: brightness(1.2); }
-.landing-cube b:nth-child(6) { transform: rotateX(-90deg) translateZ(calc(var(--s, 150px) / 2)); filter: brightness(0.6); }
+/* ========================================================================= */
+/* SYNCHRONIZED 6-SLOT ORBIT: 3 PAPER BOXES + 3 STRAIGHT HORIZONTAL TEXT BADGES */
+/* 100% Straight, Horizontal, and Readable at All Angles */
+/* ========================================================================= */
 
-/* Golden packing tape on master carton */
-.landing-cube b:nth-child(1):after,
-.landing-cube b:nth-child(3):after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 44%;
-  height: 12%;
-  background: var(--cargo-yellow);
-}
 
-@keyframes landingSpin {
-  from { transform: rotateX(-22deg) rotateY(0deg); }
-  to { transform: rotateX(-22deg) rotateY(360deg); }
-}
-
-/* Orbiting Cargo Ring */
-.landing-ring {
+.landing-orbit-slot {
   position: absolute;
   left: 50%;
   top: 50%;
   width: 0;
   height: 0;
-  transform-style: preserve-3d;
-  animation: landingOrbit 24s linear infinite;
-  transform: rotateX(70deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
 }
 
-@keyframes landingOrbit {
-  to { transform: rotateX(70deg) rotateZ(360deg); }
-}
-
-.landing-ring .landing-cube {
-  animation: none;
-}
-.landing-ring .landing-cube b {
-  background: linear-gradient(135deg, var(--cargo-yellow), var(--cargo-yellow-d));
-  border-color: rgba(255, 255, 255, 0.6);
-  color: var(--cargo-ink);
-}
-
-.landing-ringline {
+.landing-orbit-straight-badge {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 420px;
-  height: 420px;
-  margin: -210px;
-  border-radius: 50%;
-  border: 1.5px dashed rgba(30, 117, 187, 0.45);
-  transform: rotateX(70deg);
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid var(--cargo-line);
+  padding: 6px 16px;
+  border-radius: 9999px;
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: var(--cargo-blue-d);
+  box-shadow: 0 12px 24px -8px rgba(15, 76, 129, 0.35);
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  white-space: nowrap;
   pointer-events: none;
 }
+
+.landing-orbit-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cargo-yellow);
+  box-shadow: 0 0 8px var(--cargo-yellow-d);
+  flex-shrink: 0;
+}
+
+.landing-root[data-lang="my"] .landing-orbit-straight-badge {
+  font-family: "Noto Serif Myanmar", serif;
+  padding: 8px 16px 6px;
+  font-size: 0.88rem;
+  line-height: 1.3;
+}
+
+/* 3D Isometric Golden Paper Box with Packing Tape */
+.landing-orbit-paper-box {
+  position: absolute;
+  transform: translate(-50%, -50%) rotateX(-22deg) rotateY(32deg);
+  width: 44px;
+  height: 44px;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.landing-orbit-paper-box b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--cargo-yellow), var(--cargo-yellow-d));
+  border: 1.5px solid rgba(255, 255, 255, 0.65);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.15);
+}
+
+.landing-orbit-paper-box b:nth-child(1) {
+  transform: translateZ(22px);
+}
+
+.landing-orbit-paper-box b:nth-child(2) {
+  transform: rotateY(180deg) translateZ(22px);
+}
+
+.landing-orbit-paper-box b:nth-child(3) {
+  transform: rotateY(90deg) translateZ(22px);
+  filter: brightness(0.9);
+}
+
+.landing-orbit-paper-box b:nth-child(4) {
+  transform: rotateY(-90deg) translateZ(22px);
+  filter: brightness(0.9);
+}
+
+.landing-orbit-paper-box b:nth-child(5) {
+  transform: rotateX(90deg) translateZ(22px);
+  filter: brightness(1.15);
+}
+
+.landing-orbit-paper-box b:nth-child(6) {
+  transform: rotateX(-90deg) translateZ(22px);
+  filter: brightness(0.75);
+}
+
+/* Golden box packing tape across front, sides and top */
+.landing-orbit-paper-box b:nth-child(1):after,
+.landing-orbit-paper-box b:nth-child(3):after,
+.landing-orbit-paper-box b:nth-child(5):after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 42%;
+  height: 16%;
+  background: #E5A800;
+}
+
+.landing-orbit-slot-0 {
+  animation: orbitSlot0 22s linear infinite;
+}
+
+@keyframes orbitSlot0 {
+  0.0% {
+    transform: translate3d(230.0px, 0.0px, 0.0px) scale(0.95);
+    z-index: 25;
+  }
+
+  4.2% {
+    transform: translate3d(222.2px, 22.3px, 9.1px) scale(0.976);
+    z-index: 25;
+  }
+
+  8.3% {
+    transform: translate3d(199.2px, 43.0px, 17.5px) scale(1.0);
+    z-index: 25;
+  }
+
+  12.5% {
+    transform: translate3d(162.6px, 60.8px, 24.7px) scale(1.021);
+    z-index: 25;
+  }
+
+  16.7% {
+    transform: translate3d(115.0px, 74.5px, 30.3px) scale(1.037);
+    z-index: 25;
+  }
+
+  20.8% {
+    transform: translate3d(59.5px, 83.1px, 33.8px) scale(1.047);
+    z-index: 25;
+  }
+
+  25.0% {
+    transform: translate3d(0.0px, 86.0px, 35.0px) scale(1.05);
+    z-index: 25;
+  }
+
+  29.2% {
+    transform: translate3d(-59.5px, 83.1px, 33.8px) scale(1.047);
+    z-index: 25;
+  }
+
+  33.3% {
+    transform: translate3d(-115.0px, 74.5px, 30.3px) scale(1.037);
+    z-index: 25;
+  }
+
+  37.5% {
+    transform: translate3d(-162.6px, 60.8px, 24.7px) scale(1.021);
+    z-index: 25;
+  }
+
+  41.7% {
+    transform: translate3d(-199.2px, 43.0px, 17.5px) scale(1.0);
+    z-index: 25;
+  }
+
+  45.8% {
+    transform: translate3d(-222.2px, 22.3px, 9.1px) scale(0.976);
+    z-index: 25;
+  }
+
+  50.0% {
+    transform: translate3d(-230.0px, 0.0px, 0.0px) scale(0.95);
+    z-index: 25;
+  }
+
+  54.2% {
+    transform: translate3d(-222.2px, -22.3px, -9.1px) scale(0.924);
+    z-index: 3;
+  }
+
+  58.3% {
+    transform: translate3d(-199.2px, -43.0px, -17.5px) scale(0.9);
+    z-index: 3;
+  }
+
+  62.5% {
+    transform: translate3d(-162.6px, -60.8px, -24.7px) scale(0.879);
+    z-index: 3;
+  }
+
+  66.7% {
+    transform: translate3d(-115.0px, -74.5px, -30.3px) scale(0.863);
+    z-index: 3;
+  }
+
+  70.8% {
+    transform: translate3d(-59.5px, -83.1px, -33.8px) scale(0.853);
+    z-index: 3;
+  }
+
+  75.0% {
+    transform: translate3d(-0.0px, -86.0px, -35.0px) scale(0.85);
+    z-index: 3;
+  }
+
+  79.2% {
+    transform: translate3d(59.5px, -83.1px, -33.8px) scale(0.853);
+    z-index: 3;
+  }
+
+  83.3% {
+    transform: translate3d(115.0px, -74.5px, -30.3px) scale(0.863);
+    z-index: 3;
+  }
+
+  87.5% {
+    transform: translate3d(162.6px, -60.8px, -24.7px) scale(0.879);
+    z-index: 3;
+  }
+
+  91.7% {
+    transform: translate3d(199.2px, -43.0px, -17.5px) scale(0.9);
+    z-index: 3;
+  }
+
+  95.8% {
+    transform: translate3d(222.2px, -22.3px, -9.1px) scale(0.924);
+    z-index: 3;
+  }
+
+  100.0% {
+    transform: translate3d(230.0px, -0.0px, -0.0px) scale(0.95);
+    z-index: 3;
+  }
+}
+
+.landing-orbit-slot-1 {
+  animation: orbitSlot1 22s linear infinite;
+}
+
+@keyframes orbitSlot1 {
+  0.0% {
+    transform: translate3d(115.0px, 74.5px, 30.3px) scale(1.037);
+    z-index: 25;
+  }
+
+  4.2% {
+    transform: translate3d(59.5px, 83.1px, 33.8px) scale(1.047);
+    z-index: 25;
+  }
+
+  8.3% {
+    transform: translate3d(0.0px, 86.0px, 35.0px) scale(1.05);
+    z-index: 25;
+  }
+
+  12.5% {
+    transform: translate3d(-59.5px, 83.1px, 33.8px) scale(1.047);
+    z-index: 25;
+  }
+
+  16.7% {
+    transform: translate3d(-115.0px, 74.5px, 30.3px) scale(1.037);
+    z-index: 25;
+  }
+
+  20.8% {
+    transform: translate3d(-162.6px, 60.8px, 24.7px) scale(1.021);
+    z-index: 25;
+  }
+
+  25.0% {
+    transform: translate3d(-199.2px, 43.0px, 17.5px) scale(1.0);
+    z-index: 25;
+  }
+
+  29.2% {
+    transform: translate3d(-222.2px, 22.3px, 9.1px) scale(0.976);
+    z-index: 25;
+  }
+
+  33.3% {
+    transform: translate3d(-230.0px, 0.0px, 0.0px) scale(0.95);
+    z-index: 25;
+  }
+
+  37.5% {
+    transform: translate3d(-222.2px, -22.3px, -9.1px) scale(0.924);
+    z-index: 3;
+  }
+
+  41.7% {
+    transform: translate3d(-199.2px, -43.0px, -17.5px) scale(0.9);
+    z-index: 3;
+  }
+
+  45.8% {
+    transform: translate3d(-162.6px, -60.8px, -24.7px) scale(0.879);
+    z-index: 3;
+  }
+
+  50.0% {
+    transform: translate3d(-115.0px, -74.5px, -30.3px) scale(0.863);
+    z-index: 3;
+  }
+
+  54.2% {
+    transform: translate3d(-59.5px, -83.1px, -33.8px) scale(0.853);
+    z-index: 3;
+  }
+
+  58.3% {
+    transform: translate3d(-0.0px, -86.0px, -35.0px) scale(0.85);
+    z-index: 3;
+  }
+
+  62.5% {
+    transform: translate3d(59.5px, -83.1px, -33.8px) scale(0.853);
+    z-index: 3;
+  }
+
+  66.7% {
+    transform: translate3d(115.0px, -74.5px, -30.3px) scale(0.863);
+    z-index: 3;
+  }
+
+  70.8% {
+    transform: translate3d(162.6px, -60.8px, -24.7px) scale(0.879);
+    z-index: 3;
+  }
+
+  75.0% {
+    transform: translate3d(199.2px, -43.0px, -17.5px) scale(0.9);
+    z-index: 3;
+  }
+
+  79.2% {
+    transform: translate3d(222.2px, -22.3px, -9.1px) scale(0.924);
+    z-index: 3;
+  }
+
+  83.3% {
+    transform: translate3d(230.0px, -0.0px, -0.0px) scale(0.95);
+    z-index: 3;
+  }
+
+  87.5% {
+    transform: translate3d(222.2px, 22.3px, 9.1px) scale(0.976);
+    z-index: 25;
+  }
+
+  91.7% {
+    transform: translate3d(199.2px, 43.0px, 17.5px) scale(1.0);
+    z-index: 25;
+  }
+
+  95.8% {
+    transform: translate3d(162.6px, 60.8px, 24.7px) scale(1.021);
+    z-index: 25;
+  }
+
+  100.0% {
+    transform: translate3d(115.0px, 74.5px, 30.3px) scale(1.037);
+    z-index: 25;
+  }
+}
+
+.landing-orbit-slot-2 {
+  animation: orbitSlot2 22s linear infinite;
+}
+
+@keyframes orbitSlot2 {
+  0.0% {
+    transform: translate3d(-115.0px, 74.5px, 30.3px) scale(1.037);
+    z-index: 25;
+  }
+
+  4.2% {
+    transform: translate3d(-162.6px, 60.8px, 24.7px) scale(1.021);
+    z-index: 25;
+  }
+
+  8.3% {
+    transform: translate3d(-199.2px, 43.0px, 17.5px) scale(1.0);
+    z-index: 25;
+  }
+
+  12.5% {
+    transform: translate3d(-222.2px, 22.3px, 9.1px) scale(0.976);
+    z-index: 25;
+  }
+
+  16.7% {
+    transform: translate3d(-230.0px, 0.0px, 0.0px) scale(0.95);
+    z-index: 25;
+  }
+
+  20.8% {
+    transform: translate3d(-222.2px, -22.3px, -9.1px) scale(0.924);
+    z-index: 3;
+  }
+
+  25.0% {
+    transform: translate3d(-199.2px, -43.0px, -17.5px) scale(0.9);
+    z-index: 3;
+  }
+
+  29.2% {
+    transform: translate3d(-162.6px, -60.8px, -24.7px) scale(0.879);
+    z-index: 3;
+  }
+
+  33.3% {
+    transform: translate3d(-115.0px, -74.5px, -30.3px) scale(0.863);
+    z-index: 3;
+  }
+
+  37.5% {
+    transform: translate3d(-59.5px, -83.1px, -33.8px) scale(0.853);
+    z-index: 3;
+  }
+
+  41.7% {
+    transform: translate3d(-0.0px, -86.0px, -35.0px) scale(0.85);
+    z-index: 3;
+  }
+
+  45.8% {
+    transform: translate3d(59.5px, -83.1px, -33.8px) scale(0.853);
+    z-index: 3;
+  }
+
+  50.0% {
+    transform: translate3d(115.0px, -74.5px, -30.3px) scale(0.863);
+    z-index: 3;
+  }
+
+  54.2% {
+    transform: translate3d(162.6px, -60.8px, -24.7px) scale(0.879);
+    z-index: 3;
+  }
+
+  58.3% {
+    transform: translate3d(199.2px, -43.0px, -17.5px) scale(0.9);
+    z-index: 3;
+  }
+
+  62.5% {
+    transform: translate3d(222.2px, -22.3px, -9.1px) scale(0.924);
+    z-index: 3;
+  }
+
+  66.7% {
+    transform: translate3d(230.0px, -0.0px, -0.0px) scale(0.95);
+    z-index: 3;
+  }
+
+  70.8% {
+    transform: translate3d(222.2px, 22.3px, 9.1px) scale(0.976);
+    z-index: 25;
+  }
+
+  75.0% {
+    transform: translate3d(199.2px, 43.0px, 17.5px) scale(1.0);
+    z-index: 25;
+  }
+
+  79.2% {
+    transform: translate3d(162.6px, 60.8px, 24.7px) scale(1.021);
+    z-index: 25;
+  }
+
+  83.3% {
+    transform: translate3d(115.0px, 74.5px, 30.3px) scale(1.037);
+    z-index: 25;
+  }
+
+  87.5% {
+    transform: translate3d(59.5px, 83.1px, 33.8px) scale(1.047);
+    z-index: 25;
+  }
+
+  91.7% {
+    transform: translate3d(0.0px, 86.0px, 35.0px) scale(1.05);
+    z-index: 25;
+  }
+
+  95.8% {
+    transform: translate3d(-59.5px, 83.1px, 33.8px) scale(1.047);
+    z-index: 25;
+  }
+
+  100.0% {
+    transform: translate3d(-115.0px, 74.5px, 30.3px) scale(1.037);
+    z-index: 25;
+  }
+}
+
+.landing-orbit-slot-3 {
+  animation: orbitSlot3 22s linear infinite;
+}
+
+@keyframes orbitSlot3 {
+  0.0% {
+    transform: translate3d(-230.0px, 0.0px, 0.0px) scale(0.95);
+    z-index: 25;
+  }
+
+  4.2% {
+    transform: translate3d(-222.2px, -22.3px, -9.1px) scale(0.924);
+    z-index: 3;
+  }
+
+  8.3% {
+    transform: translate3d(-199.2px, -43.0px, -17.5px) scale(0.9);
+    z-index: 3;
+  }
+
+  12.5% {
+    transform: translate3d(-162.6px, -60.8px, -24.7px) scale(0.879);
+    z-index: 3;
+  }
+
+  16.7% {
+    transform: translate3d(-115.0px, -74.5px, -30.3px) scale(0.863);
+    z-index: 3;
+  }
+
+  20.8% {
+    transform: translate3d(-59.5px, -83.1px, -33.8px) scale(0.853);
+    z-index: 3;
+  }
+
+  25.0% {
+    transform: translate3d(-0.0px, -86.0px, -35.0px) scale(0.85);
+    z-index: 3;
+  }
+
+  29.2% {
+    transform: translate3d(59.5px, -83.1px, -33.8px) scale(0.853);
+    z-index: 3;
+  }
+
+  33.3% {
+    transform: translate3d(115.0px, -74.5px, -30.3px) scale(0.863);
+    z-index: 3;
+  }
+
+  37.5% {
+    transform: translate3d(162.6px, -60.8px, -24.7px) scale(0.879);
+    z-index: 3;
+  }
+
+  41.7% {
+    transform: translate3d(199.2px, -43.0px, -17.5px) scale(0.9);
+    z-index: 3;
+  }
+
+  45.8% {
+    transform: translate3d(222.2px, -22.3px, -9.1px) scale(0.924);
+    z-index: 3;
+  }
+
+  50.0% {
+    transform: translate3d(230.0px, -0.0px, -0.0px) scale(0.95);
+    z-index: 3;
+  }
+
+  54.2% {
+    transform: translate3d(222.2px, 22.3px, 9.1px) scale(0.976);
+    z-index: 25;
+  }
+
+  58.3% {
+    transform: translate3d(199.2px, 43.0px, 17.5px) scale(1.0);
+    z-index: 25;
+  }
+
+  62.5% {
+    transform: translate3d(162.6px, 60.8px, 24.7px) scale(1.021);
+    z-index: 25;
+  }
+
+  66.7% {
+    transform: translate3d(115.0px, 74.5px, 30.3px) scale(1.037);
+    z-index: 25;
+  }
+
+  70.8% {
+    transform: translate3d(59.5px, 83.1px, 33.8px) scale(1.047);
+    z-index: 25;
+  }
+
+  75.0% {
+    transform: translate3d(0.0px, 86.0px, 35.0px) scale(1.05);
+    z-index: 25;
+  }
+
+  79.2% {
+    transform: translate3d(-59.5px, 83.1px, 33.8px) scale(1.047);
+    z-index: 25;
+  }
+
+  83.3% {
+    transform: translate3d(-115.0px, 74.5px, 30.3px) scale(1.037);
+    z-index: 25;
+  }
+
+  87.5% {
+    transform: translate3d(-162.6px, 60.8px, 24.7px) scale(1.021);
+    z-index: 25;
+  }
+
+  91.7% {
+    transform: translate3d(-199.2px, 43.0px, 17.5px) scale(1.0);
+    z-index: 25;
+  }
+
+  95.8% {
+    transform: translate3d(-222.2px, 22.3px, 9.1px) scale(0.976);
+    z-index: 25;
+  }
+
+  100.0% {
+    transform: translate3d(-230.0px, 0.0px, 0.0px) scale(0.95);
+    z-index: 25;
+  }
+}
+
+.landing-orbit-slot-4 {
+  animation: orbitSlot4 22s linear infinite;
+}
+
+@keyframes orbitSlot4 {
+  0.0% {
+    transform: translate3d(-115.0px, -74.5px, -30.3px) scale(0.863);
+    z-index: 3;
+  }
+
+  4.2% {
+    transform: translate3d(-59.5px, -83.1px, -33.8px) scale(0.853);
+    z-index: 3;
+  }
+
+  8.3% {
+    transform: translate3d(-0.0px, -86.0px, -35.0px) scale(0.85);
+    z-index: 3;
+  }
+
+  12.5% {
+    transform: translate3d(59.5px, -83.1px, -33.8px) scale(0.853);
+    z-index: 3;
+  }
+
+  16.7% {
+    transform: translate3d(115.0px, -74.5px, -30.3px) scale(0.863);
+    z-index: 3;
+  }
+
+  20.8% {
+    transform: translate3d(162.6px, -60.8px, -24.7px) scale(0.879);
+    z-index: 3;
+  }
+
+  25.0% {
+    transform: translate3d(199.2px, -43.0px, -17.5px) scale(0.9);
+    z-index: 3;
+  }
+
+  29.2% {
+    transform: translate3d(222.2px, -22.3px, -9.1px) scale(0.924);
+    z-index: 3;
+  }
+
+  33.3% {
+    transform: translate3d(230.0px, -0.0px, -0.0px) scale(0.95);
+    z-index: 3;
+  }
+
+  37.5% {
+    transform: translate3d(222.2px, 22.3px, 9.1px) scale(0.976);
+    z-index: 25;
+  }
+
+  41.7% {
+    transform: translate3d(199.2px, 43.0px, 17.5px) scale(1.0);
+    z-index: 25;
+  }
+
+  45.8% {
+    transform: translate3d(162.6px, 60.8px, 24.7px) scale(1.021);
+    z-index: 25;
+  }
+
+  50.0% {
+    transform: translate3d(115.0px, 74.5px, 30.3px) scale(1.037);
+    z-index: 25;
+  }
+
+  54.2% {
+    transform: translate3d(59.5px, 83.1px, 33.8px) scale(1.047);
+    z-index: 25;
+  }
+
+  58.3% {
+    transform: translate3d(0.0px, 86.0px, 35.0px) scale(1.05);
+    z-index: 25;
+  }
+
+  62.5% {
+    transform: translate3d(-59.5px, 83.1px, 33.8px) scale(1.047);
+    z-index: 25;
+  }
+
+  66.7% {
+    transform: translate3d(-115.0px, 74.5px, 30.3px) scale(1.037);
+    z-index: 25;
+  }
+
+  70.8% {
+    transform: translate3d(-162.6px, 60.8px, 24.7px) scale(1.021);
+    z-index: 25;
+  }
+
+  75.0% {
+    transform: translate3d(-199.2px, 43.0px, 17.5px) scale(1.0);
+    z-index: 25;
+  }
+
+  79.2% {
+    transform: translate3d(-222.2px, 22.3px, 9.1px) scale(0.976);
+    z-index: 25;
+  }
+
+  83.3% {
+    transform: translate3d(-230.0px, 0.0px, 0.0px) scale(0.95);
+    z-index: 25;
+  }
+
+  87.5% {
+    transform: translate3d(-222.2px, -22.3px, -9.1px) scale(0.924);
+    z-index: 3;
+  }
+
+  91.7% {
+    transform: translate3d(-199.2px, -43.0px, -17.5px) scale(0.9);
+    z-index: 3;
+  }
+
+  95.8% {
+    transform: translate3d(-162.6px, -60.8px, -24.7px) scale(0.879);
+    z-index: 3;
+  }
+
+  100.0% {
+    transform: translate3d(-115.0px, -74.5px, -30.3px) scale(0.863);
+    z-index: 3;
+  }
+}
+
+.landing-orbit-slot-5 {
+  animation: orbitSlot5 22s linear infinite;
+}
+
+@keyframes orbitSlot5 {
+  0.0% {
+    transform: translate3d(115.0px, -74.5px, -30.3px) scale(0.863);
+    z-index: 3;
+  }
+
+  4.2% {
+    transform: translate3d(162.6px, -60.8px, -24.7px) scale(0.879);
+    z-index: 3;
+  }
+
+  8.3% {
+    transform: translate3d(199.2px, -43.0px, -17.5px) scale(0.9);
+    z-index: 3;
+  }
+
+  12.5% {
+    transform: translate3d(222.2px, -22.3px, -9.1px) scale(0.924);
+    z-index: 3;
+  }
+
+  16.7% {
+    transform: translate3d(230.0px, -0.0px, -0.0px) scale(0.95);
+    z-index: 3;
+  }
+
+  20.8% {
+    transform: translate3d(222.2px, 22.3px, 9.1px) scale(0.976);
+    z-index: 25;
+  }
+
+  25.0% {
+    transform: translate3d(199.2px, 43.0px, 17.5px) scale(1.0);
+    z-index: 25;
+  }
+
+  29.2% {
+    transform: translate3d(162.6px, 60.8px, 24.7px) scale(1.021);
+    z-index: 25;
+  }
+
+  33.3% {
+    transform: translate3d(115.0px, 74.5px, 30.3px) scale(1.037);
+    z-index: 25;
+  }
+
+  37.5% {
+    transform: translate3d(59.5px, 83.1px, 33.8px) scale(1.047);
+    z-index: 25;
+  }
+
+  41.7% {
+    transform: translate3d(0.0px, 86.0px, 35.0px) scale(1.05);
+    z-index: 25;
+  }
+
+  45.8% {
+    transform: translate3d(-59.5px, 83.1px, 33.8px) scale(1.047);
+    z-index: 25;
+  }
+
+  50.0% {
+    transform: translate3d(-115.0px, 74.5px, 30.3px) scale(1.037);
+    z-index: 25;
+  }
+
+  54.2% {
+    transform: translate3d(-162.6px, 60.8px, 24.7px) scale(1.021);
+    z-index: 25;
+  }
+
+  58.3% {
+    transform: translate3d(-199.2px, 43.0px, 17.5px) scale(1.0);
+    z-index: 25;
+  }
+
+  62.5% {
+    transform: translate3d(-222.2px, 22.3px, 9.1px) scale(0.976);
+    z-index: 25;
+  }
+
+  66.7% {
+    transform: translate3d(-230.0px, 0.0px, 0.0px) scale(0.95);
+    z-index: 25;
+  }
+
+  70.8% {
+    transform: translate3d(-222.2px, -22.3px, -9.1px) scale(0.924);
+    z-index: 3;
+  }
+
+  75.0% {
+    transform: translate3d(-199.2px, -43.0px, -17.5px) scale(0.9);
+    z-index: 3;
+  }
+
+  79.2% {
+    transform: translate3d(-162.6px, -60.8px, -24.7px) scale(0.879);
+    z-index: 3;
+  }
+
+  83.3% {
+    transform: translate3d(-115.0px, -74.5px, -30.3px) scale(0.863);
+    z-index: 3;
+  }
+
+  87.5% {
+    transform: translate3d(-59.5px, -83.1px, -33.8px) scale(0.853);
+    z-index: 3;
+  }
+
+  91.7% {
+    transform: translate3d(-0.0px, -86.0px, -35.0px) scale(0.85);
+    z-index: 3;
+  }
+
+  95.8% {
+    transform: translate3d(59.5px, -83.1px, -33.8px) scale(0.853);
+    z-index: 3;
+  }
+
+  100.0% {
+    transform: translate3d(115.0px, -74.5px, -30.3px) scale(0.863);
+    z-index: 3;
+  }
+}
+
+/* Synchronized Orbit Mobile Overrides (Safe Viewport Bounds) */
+@media (max-width: 860px) {
+  .landing-stage {
+    height: 330px;
+  }
+
+  .landing-center-truck-wrapper {
+    width: 230px;
+    height: 140px;
+    margin: -70px 0 0 -115px;
+  }
+
+  .landing-orbit-paper-box {
+    width: 34px;
+    height: 34px;
+  }
+
+  .landing-orbit-paper-box b:nth-child(1) {
+    transform: translateZ(17px);
+  }
+
+  .landing-orbit-paper-box b:nth-child(2) {
+    transform: rotateY(180deg) translateZ(17px);
+  }
+
+  .landing-orbit-paper-box b:nth-child(3) {
+    transform: rotateY(90deg) translateZ(17px);
+  }
+
+  .landing-orbit-paper-box b:nth-child(4) {
+    transform: rotateY(-90deg) translateZ(17px);
+  }
+
+  .landing-orbit-paper-box b:nth-child(5) {
+    transform: rotateX(90deg) translateZ(17px);
+  }
+
+  .landing-orbit-paper-box b:nth-child(6) {
+    transform: rotateX(-90deg) translateZ(17px);
+  }
+
+  .landing-orbit-straight-badge {
+    padding: 5px 12px;
+    font-size: 0.76rem;
+  }
+
+  .landing-ringline {
+    width: 270px;
+    height: 100px;
+    margin: -50px 0 0 -135px;
+  }
+
+  @keyframes orbitSlot0 {
+    0.0% {
+      transform: translate3d(135.0px, 0.0px, 0.0px) scale(0.9);
+      z-index: 25;
+    }
+
+    4.2% {
+      transform: translate3d(130.4px, 12.9px, 5.7px) scale(0.926);
+      z-index: 25;
+    }
+
+    8.3% {
+      transform: translate3d(116.9px, 25.0px, 11.0px) scale(0.95);
+      z-index: 25;
+    }
+
+    12.5% {
+      transform: translate3d(95.5px, 35.4px, 15.6px) scale(0.971);
+      z-index: 25;
+    }
+
+    16.7% {
+      transform: translate3d(67.5px, 43.3px, 19.1px) scale(0.987);
+      z-index: 25;
+    }
+
+    20.8% {
+      transform: translate3d(34.9px, 48.3px, 21.3px) scale(0.997);
+      z-index: 25;
+    }
+
+    25.0% {
+      transform: translate3d(0.0px, 50.0px, 22.0px) scale(1.0);
+      z-index: 25;
+    }
+
+    29.2% {
+      transform: translate3d(-34.9px, 48.3px, 21.3px) scale(0.997);
+      z-index: 25;
+    }
+
+    33.3% {
+      transform: translate3d(-67.5px, 43.3px, 19.1px) scale(0.987);
+      z-index: 25;
+    }
+
+    37.5% {
+      transform: translate3d(-95.5px, 35.4px, 15.6px) scale(0.971);
+      z-index: 25;
+    }
+
+    41.7% {
+      transform: translate3d(-116.9px, 25.0px, 11.0px) scale(0.95);
+      z-index: 25;
+    }
+
+    45.8% {
+      transform: translate3d(-130.4px, 12.9px, 5.7px) scale(0.926);
+      z-index: 25;
+    }
+
+    50.0% {
+      transform: translate3d(-135.0px, 0.0px, 0.0px) scale(0.9);
+      z-index: 25;
+    }
+
+    54.2% {
+      transform: translate3d(-130.4px, -12.9px, -5.7px) scale(0.874);
+      z-index: 3;
+    }
+
+    58.3% {
+      transform: translate3d(-116.9px, -25.0px, -11.0px) scale(0.85);
+      z-index: 3;
+    }
+
+    62.5% {
+      transform: translate3d(-95.5px, -35.4px, -15.6px) scale(0.829);
+      z-index: 3;
+    }
+
+    66.7% {
+      transform: translate3d(-67.5px, -43.3px, -19.1px) scale(0.813);
+      z-index: 3;
+    }
+
+    70.8% {
+      transform: translate3d(-34.9px, -48.3px, -21.3px) scale(0.803);
+      z-index: 3;
+    }
+
+    75.0% {
+      transform: translate3d(-0.0px, -50.0px, -22.0px) scale(0.8);
+      z-index: 3;
+    }
+
+    79.2% {
+      transform: translate3d(34.9px, -48.3px, -21.3px) scale(0.803);
+      z-index: 3;
+    }
+
+    83.3% {
+      transform: translate3d(67.5px, -43.3px, -19.1px) scale(0.813);
+      z-index: 3;
+    }
+
+    87.5% {
+      transform: translate3d(95.5px, -35.4px, -15.6px) scale(0.829);
+      z-index: 3;
+    }
+
+    91.7% {
+      transform: translate3d(116.9px, -25.0px, -11.0px) scale(0.85);
+      z-index: 3;
+    }
+
+    95.8% {
+      transform: translate3d(130.4px, -12.9px, -5.7px) scale(0.874);
+      z-index: 3;
+    }
+
+    100.0% {
+      transform: translate3d(135.0px, -0.0px, -0.0px) scale(0.9);
+      z-index: 3;
+    }
+  }
+
+  @keyframes orbitSlot1 {
+    0.0% {
+      transform: translate3d(67.5px, 43.3px, 19.1px) scale(0.987);
+      z-index: 25;
+    }
+
+    4.2% {
+      transform: translate3d(34.9px, 48.3px, 21.3px) scale(0.997);
+      z-index: 25;
+    }
+
+    8.3% {
+      transform: translate3d(0.0px, 50.0px, 22.0px) scale(1.0);
+      z-index: 25;
+    }
+
+    12.5% {
+      transform: translate3d(-34.9px, 48.3px, 21.3px) scale(0.997);
+      z-index: 25;
+    }
+
+    16.7% {
+      transform: translate3d(-67.5px, 43.3px, 19.1px) scale(0.987);
+      z-index: 25;
+    }
+
+    20.8% {
+      transform: translate3d(-95.5px, 35.4px, 15.6px) scale(0.971);
+      z-index: 25;
+    }
+
+    25.0% {
+      transform: translate3d(-116.9px, 25.0px, 11.0px) scale(0.95);
+      z-index: 25;
+    }
+
+    29.2% {
+      transform: translate3d(-130.4px, 12.9px, 5.7px) scale(0.926);
+      z-index: 25;
+    }
+
+    33.3% {
+      transform: translate3d(-135.0px, 0.0px, 0.0px) scale(0.9);
+      z-index: 25;
+    }
+
+    37.5% {
+      transform: translate3d(-130.4px, -12.9px, -5.7px) scale(0.874);
+      z-index: 3;
+    }
+
+    41.7% {
+      transform: translate3d(-116.9px, -25.0px, -11.0px) scale(0.85);
+      z-index: 3;
+    }
+
+    45.8% {
+      transform: translate3d(-95.5px, -35.4px, -15.6px) scale(0.829);
+      z-index: 3;
+    }
+
+    50.0% {
+      transform: translate3d(-67.5px, -43.3px, -19.1px) scale(0.813);
+      z-index: 3;
+    }
+
+    54.2% {
+      transform: translate3d(-34.9px, -48.3px, -21.3px) scale(0.803);
+      z-index: 3;
+    }
+
+    58.3% {
+      transform: translate3d(-0.0px, -50.0px, -22.0px) scale(0.8);
+      z-index: 3;
+    }
+
+    62.5% {
+      transform: translate3d(34.9px, -48.3px, -21.3px) scale(0.803);
+      z-index: 3;
+    }
+
+    66.7% {
+      transform: translate3d(67.5px, -43.3px, -19.1px) scale(0.813);
+      z-index: 3;
+    }
+
+    70.8% {
+      transform: translate3d(95.5px, -35.4px, -15.6px) scale(0.829);
+      z-index: 3;
+    }
+
+    75.0% {
+      transform: translate3d(116.9px, -25.0px, -11.0px) scale(0.85);
+      z-index: 3;
+    }
+
+    79.2% {
+      transform: translate3d(130.4px, -12.9px, -5.7px) scale(0.874);
+      z-index: 3;
+    }
+
+    83.3% {
+      transform: translate3d(135.0px, -0.0px, -0.0px) scale(0.9);
+      z-index: 3;
+    }
+
+    87.5% {
+      transform: translate3d(130.4px, 12.9px, 5.7px) scale(0.926);
+      z-index: 25;
+    }
+
+    91.7% {
+      transform: translate3d(116.9px, 25.0px, 11.0px) scale(0.95);
+      z-index: 25;
+    }
+
+    95.8% {
+      transform: translate3d(95.5px, 35.4px, 15.6px) scale(0.971);
+      z-index: 25;
+    }
+
+    100.0% {
+      transform: translate3d(67.5px, 43.3px, 19.1px) scale(0.987);
+      z-index: 25;
+    }
+  }
+
+  @keyframes orbitSlot2 {
+    0.0% {
+      transform: translate3d(-67.5px, 43.3px, 19.1px) scale(0.987);
+      z-index: 25;
+    }
+
+    4.2% {
+      transform: translate3d(-95.5px, 35.4px, 15.6px) scale(0.971);
+      z-index: 25;
+    }
+
+    8.3% {
+      transform: translate3d(-116.9px, 25.0px, 11.0px) scale(0.95);
+      z-index: 25;
+    }
+
+    12.5% {
+      transform: translate3d(-130.4px, 12.9px, 5.7px) scale(0.926);
+      z-index: 25;
+    }
+
+    16.7% {
+      transform: translate3d(-135.0px, 0.0px, 0.0px) scale(0.9);
+      z-index: 25;
+    }
+
+    20.8% {
+      transform: translate3d(-130.4px, -12.9px, -5.7px) scale(0.874);
+      z-index: 3;
+    }
+
+    25.0% {
+      transform: translate3d(-116.9px, -25.0px, -11.0px) scale(0.85);
+      z-index: 3;
+    }
+
+    29.2% {
+      transform: translate3d(-95.5px, -35.4px, -15.6px) scale(0.829);
+      z-index: 3;
+    }
+
+    33.3% {
+      transform: translate3d(-67.5px, -43.3px, -19.1px) scale(0.813);
+      z-index: 3;
+    }
+
+    37.5% {
+      transform: translate3d(-34.9px, -48.3px, -21.3px) scale(0.803);
+      z-index: 3;
+    }
+
+    41.7% {
+      transform: translate3d(-0.0px, -50.0px, -22.0px) scale(0.8);
+      z-index: 3;
+    }
+
+    45.8% {
+      transform: translate3d(34.9px, -48.3px, -21.3px) scale(0.803);
+      z-index: 3;
+    }
+
+    50.0% {
+      transform: translate3d(67.5px, -43.3px, -19.1px) scale(0.813);
+      z-index: 3;
+    }
+
+    54.2% {
+      transform: translate3d(95.5px, -35.4px, -15.6px) scale(0.829);
+      z-index: 3;
+    }
+
+    58.3% {
+      transform: translate3d(116.9px, -25.0px, -11.0px) scale(0.85);
+      z-index: 3;
+    }
+
+    62.5% {
+      transform: translate3d(130.4px, -12.9px, -5.7px) scale(0.874);
+      z-index: 3;
+    }
+
+    66.7% {
+      transform: translate3d(135.0px, -0.0px, -0.0px) scale(0.9);
+      z-index: 3;
+    }
+
+    70.8% {
+      transform: translate3d(130.4px, 12.9px, 5.7px) scale(0.926);
+      z-index: 25;
+    }
+
+    75.0% {
+      transform: translate3d(116.9px, 25.0px, 11.0px) scale(0.95);
+      z-index: 25;
+    }
+
+    79.2% {
+      transform: translate3d(95.5px, 35.4px, 15.6px) scale(0.971);
+      z-index: 25;
+    }
+
+    83.3% {
+      transform: translate3d(67.5px, 43.3px, 19.1px) scale(0.987);
+      z-index: 25;
+    }
+
+    87.5% {
+      transform: translate3d(34.9px, 48.3px, 21.3px) scale(0.997);
+      z-index: 25;
+    }
+
+    91.7% {
+      transform: translate3d(0.0px, 50.0px, 22.0px) scale(1.0);
+      z-index: 25;
+    }
+
+    95.8% {
+      transform: translate3d(-34.9px, 48.3px, 21.3px) scale(0.997);
+      z-index: 25;
+    }
+
+    100.0% {
+      transform: translate3d(-67.5px, 43.3px, 19.1px) scale(0.987);
+      z-index: 25;
+    }
+  }
+
+  @keyframes orbitSlot3 {
+    0.0% {
+      transform: translate3d(-135.0px, 0.0px, 0.0px) scale(0.9);
+      z-index: 25;
+    }
+
+    4.2% {
+      transform: translate3d(-130.4px, -12.9px, -5.7px) scale(0.874);
+      z-index: 3;
+    }
+
+    8.3% {
+      transform: translate3d(-116.9px, -25.0px, -11.0px) scale(0.85);
+      z-index: 3;
+    }
+
+    12.5% {
+      transform: translate3d(-95.5px, -35.4px, -15.6px) scale(0.829);
+      z-index: 3;
+    }
+
+    16.7% {
+      transform: translate3d(-67.5px, -43.3px, -19.1px) scale(0.813);
+      z-index: 3;
+    }
+
+    20.8% {
+      transform: translate3d(-34.9px, -48.3px, -21.3px) scale(0.803);
+      z-index: 3;
+    }
+
+    25.0% {
+      transform: translate3d(-0.0px, -50.0px, -22.0px) scale(0.8);
+      z-index: 3;
+    }
+
+    29.2% {
+      transform: translate3d(34.9px, -48.3px, -21.3px) scale(0.803);
+      z-index: 3;
+    }
+
+    33.3% {
+      transform: translate3d(67.5px, -43.3px, -19.1px) scale(0.813);
+      z-index: 3;
+    }
+
+    37.5% {
+      transform: translate3d(95.5px, -35.4px, -15.6px) scale(0.829);
+      z-index: 3;
+    }
+
+    41.7% {
+      transform: translate3d(116.9px, -25.0px, -11.0px) scale(0.85);
+      z-index: 3;
+    }
+
+    45.8% {
+      transform: translate3d(130.4px, -12.9px, -5.7px) scale(0.874);
+      z-index: 3;
+    }
+
+    50.0% {
+      transform: translate3d(135.0px, -0.0px, -0.0px) scale(0.9);
+      z-index: 3;
+    }
+
+    54.2% {
+      transform: translate3d(130.4px, 12.9px, 5.7px) scale(0.926);
+      z-index: 25;
+    }
+
+    58.3% {
+      transform: translate3d(116.9px, 25.0px, 11.0px) scale(0.95);
+      z-index: 25;
+    }
+
+    62.5% {
+      transform: translate3d(95.5px, 35.4px, 15.6px) scale(0.971);
+      z-index: 25;
+    }
+
+    66.7% {
+      transform: translate3d(67.5px, 43.3px, 19.1px) scale(0.987);
+      z-index: 25;
+    }
+
+    70.8% {
+      transform: translate3d(34.9px, 48.3px, 21.3px) scale(0.997);
+      z-index: 25;
+    }
+
+    75.0% {
+      transform: translate3d(0.0px, 50.0px, 22.0px) scale(1.0);
+      z-index: 25;
+    }
+
+    79.2% {
+      transform: translate3d(-34.9px, 48.3px, 21.3px) scale(0.997);
+      z-index: 25;
+    }
+
+    83.3% {
+      transform: translate3d(-67.5px, 43.3px, 19.1px) scale(0.987);
+      z-index: 25;
+    }
+
+    87.5% {
+      transform: translate3d(-95.5px, 35.4px, 15.6px) scale(0.971);
+      z-index: 25;
+    }
+
+    91.7% {
+      transform: translate3d(-116.9px, 25.0px, 11.0px) scale(0.95);
+      z-index: 25;
+    }
+
+    95.8% {
+      transform: translate3d(-130.4px, 12.9px, 5.7px) scale(0.926);
+      z-index: 25;
+    }
+
+    100.0% {
+      transform: translate3d(-135.0px, 0.0px, 0.0px) scale(0.9);
+      z-index: 25;
+    }
+  }
+
+  @keyframes orbitSlot4 {
+    0.0% {
+      transform: translate3d(-67.5px, -43.3px, -19.1px) scale(0.813);
+      z-index: 3;
+    }
+
+    4.2% {
+      transform: translate3d(-34.9px, -48.3px, -21.3px) scale(0.803);
+      z-index: 3;
+    }
+
+    8.3% {
+      transform: translate3d(-0.0px, -50.0px, -22.0px) scale(0.8);
+      z-index: 3;
+    }
+
+    12.5% {
+      transform: translate3d(34.9px, -48.3px, -21.3px) scale(0.803);
+      z-index: 3;
+    }
+
+    16.7% {
+      transform: translate3d(67.5px, -43.3px, -19.1px) scale(0.813);
+      z-index: 3;
+    }
+
+    20.8% {
+      transform: translate3d(95.5px, -35.4px, -15.6px) scale(0.829);
+      z-index: 3;
+    }
+
+    25.0% {
+      transform: translate3d(116.9px, -25.0px, -11.0px) scale(0.85);
+      z-index: 3;
+    }
+
+    29.2% {
+      transform: translate3d(130.4px, -12.9px, -5.7px) scale(0.874);
+      z-index: 3;
+    }
+
+    33.3% {
+      transform: translate3d(135.0px, -0.0px, -0.0px) scale(0.9);
+      z-index: 3;
+    }
+
+    37.5% {
+      transform: translate3d(130.4px, 12.9px, 5.7px) scale(0.926);
+      z-index: 25;
+    }
+
+    41.7% {
+      transform: translate3d(116.9px, 25.0px, 11.0px) scale(0.95);
+      z-index: 25;
+    }
+
+    45.8% {
+      transform: translate3d(95.5px, 35.4px, 15.6px) scale(0.971);
+      z-index: 25;
+    }
+
+    50.0% {
+      transform: translate3d(67.5px, 43.3px, 19.1px) scale(0.987);
+      z-index: 25;
+    }
+
+    54.2% {
+      transform: translate3d(34.9px, 48.3px, 21.3px) scale(0.997);
+      z-index: 25;
+    }
+
+    58.3% {
+      transform: translate3d(0.0px, 50.0px, 22.0px) scale(1.0);
+      z-index: 25;
+    }
+
+    62.5% {
+      transform: translate3d(-34.9px, 48.3px, 21.3px) scale(0.997);
+      z-index: 25;
+    }
+
+    66.7% {
+      transform: translate3d(-67.5px, 43.3px, 19.1px) scale(0.987);
+      z-index: 25;
+    }
+
+    70.8% {
+      transform: translate3d(-95.5px, 35.4px, 15.6px) scale(0.971);
+      z-index: 25;
+    }
+
+    75.0% {
+      transform: translate3d(-116.9px, 25.0px, 11.0px) scale(0.95);
+      z-index: 25;
+    }
+
+    79.2% {
+      transform: translate3d(-130.4px, 12.9px, 5.7px) scale(0.926);
+      z-index: 25;
+    }
+
+    83.3% {
+      transform: translate3d(-135.0px, 0.0px, 0.0px) scale(0.9);
+      z-index: 25;
+    }
+
+    87.5% {
+      transform: translate3d(-130.4px, -12.9px, -5.7px) scale(0.874);
+      z-index: 3;
+    }
+
+    91.7% {
+      transform: translate3d(-116.9px, -25.0px, -11.0px) scale(0.85);
+      z-index: 3;
+    }
+
+    95.8% {
+      transform: translate3d(-95.5px, -35.4px, -15.6px) scale(0.829);
+      z-index: 3;
+    }
+
+    100.0% {
+      transform: translate3d(-67.5px, -43.3px, -19.1px) scale(0.813);
+      z-index: 3;
+    }
+  }
+
+  @keyframes orbitSlot5 {
+    0.0% {
+      transform: translate3d(67.5px, -43.3px, -19.1px) scale(0.813);
+      z-index: 3;
+    }
+
+    4.2% {
+      transform: translate3d(95.5px, -35.4px, -15.6px) scale(0.829);
+      z-index: 3;
+    }
+
+    8.3% {
+      transform: translate3d(116.9px, -25.0px, -11.0px) scale(0.85);
+      z-index: 3;
+    }
+
+    12.5% {
+      transform: translate3d(130.4px, -12.9px, -5.7px) scale(0.874);
+      z-index: 3;
+    }
+
+    16.7% {
+      transform: translate3d(135.0px, -0.0px, -0.0px) scale(0.9);
+      z-index: 3;
+    }
+
+    20.8% {
+      transform: translate3d(130.4px, 12.9px, 5.7px) scale(0.926);
+      z-index: 25;
+    }
+
+    25.0% {
+      transform: translate3d(116.9px, 25.0px, 11.0px) scale(0.95);
+      z-index: 25;
+    }
+
+    29.2% {
+      transform: translate3d(95.5px, 35.4px, 15.6px) scale(0.971);
+      z-index: 25;
+    }
+
+    33.3% {
+      transform: translate3d(67.5px, 43.3px, 19.1px) scale(0.987);
+      z-index: 25;
+    }
+
+    37.5% {
+      transform: translate3d(34.9px, 48.3px, 21.3px) scale(0.997);
+      z-index: 25;
+    }
+
+    41.7% {
+      transform: translate3d(0.0px, 50.0px, 22.0px) scale(1.0);
+      z-index: 25;
+    }
+
+    45.8% {
+      transform: translate3d(-34.9px, 48.3px, 21.3px) scale(0.997);
+      z-index: 25;
+    }
+
+    50.0% {
+      transform: translate3d(-67.5px, 43.3px, 19.1px) scale(0.987);
+      z-index: 25;
+    }
+
+    54.2% {
+      transform: translate3d(-95.5px, 35.4px, 15.6px) scale(0.971);
+      z-index: 25;
+    }
+
+    58.3% {
+      transform: translate3d(-116.9px, 25.0px, 11.0px) scale(0.95);
+      z-index: 25;
+    }
+
+    62.5% {
+      transform: translate3d(-130.4px, 12.9px, 5.7px) scale(0.926);
+      z-index: 25;
+    }
+
+    66.7% {
+      transform: translate3d(-135.0px, 0.0px, 0.0px) scale(0.9);
+      z-index: 25;
+    }
+
+    70.8% {
+      transform: translate3d(-130.4px, -12.9px, -5.7px) scale(0.874);
+      z-index: 3;
+    }
+
+    75.0% {
+      transform: translate3d(-116.9px, -25.0px, -11.0px) scale(0.85);
+      z-index: 3;
+    }
+
+    79.2% {
+      transform: translate3d(-95.5px, -35.4px, -15.6px) scale(0.829);
+      z-index: 3;
+    }
+
+    83.3% {
+      transform: translate3d(-67.5px, -43.3px, -19.1px) scale(0.813);
+      z-index: 3;
+    }
+
+    87.5% {
+      transform: translate3d(-34.9px, -48.3px, -21.3px) scale(0.803);
+      z-index: 3;
+    }
+
+    91.7% {
+      transform: translate3d(-0.0px, -50.0px, -22.0px) scale(0.8);
+      z-index: 3;
+    }
+
+    95.8% {
+      transform: translate3d(34.9px, -48.3px, -21.3px) scale(0.803);
+      z-index: 3;
+    }
+
+    100.0% {
+      transform: translate3d(67.5px, -43.3px, -19.1px) scale(0.813);
+      z-index: 3;
+    }
+  }
+
+}
+
 
 /* Floating Glassmorphic Status Chips */
 .landing-chip {
   position: absolute;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--cargo-line);
-  padding: 11px 18px;
+  padding: 10px 18px;
   border-radius: 16px;
   font-size: 0.86rem;
   font-weight: 600;
@@ -242,17 +2043,20 @@
 }
 
 .landing-chip-a {
-  left: 0;
-  bottom: 60px;
+  left: -10px;
+  bottom: 50px;
 }
+
 .landing-chip-b {
-  right: 0;
-  top: 40px;
+  right: -10px;
+  top: 35px;
   animation-delay: -2s;
 }
 
 @keyframes landingBob {
-  50% { transform: translateZ(120px) translateY(-14px); }
+  50% {
+    transform: translateZ(120px) translateY(-14px);
+  }
 }
 
 /* Button with Light Sweep Effect */
@@ -282,7 +2086,9 @@
 }
 
 @keyframes landingShine {
-  to { left: 140%; }
+  to {
+    left: 140%;
+  }
 }
 
 .landing-btn:hover {
@@ -297,12 +2103,15 @@
   animation: landingMarq 28s linear infinite;
   white-space: nowrap;
 }
+
 .landing-track:hover {
   animation-play-state: paused;
 }
 
 @keyframes landingMarq {
-  to { transform: translateX(-50%); }
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 /* 3D Tilt Card with Cursor Spotlight */
@@ -311,7 +2120,7 @@
   background: #FFFFFF;
   border: 1px solid var(--cargo-line);
   border-radius: 24px;
-  padding: 32px;
+  padding: 28px;
   transform-style: preserve-3d;
   transition: transform 0.2s ease-out, border-color 0.3s, box-shadow 0.3s;
   overflow: hidden;
@@ -332,23 +2141,44 @@
   border-color: var(--cargo-blue);
   box-shadow: 0 24px 44px -20px rgba(30, 117, 187, 0.45);
 }
+
 .landing-card:hover:before {
   opacity: 1;
 }
 
-/* Parallax Truck Journey Container */
+/* ========================================================================= */
+/* FIX FOR HOW IT WORKS: STICKY LOCKING, ALIGNMENT & CAR MOVING            */
+/* ========================================================================= */
+
 .landing-journey {
-  height: 400vh;
+  height: 220vh;
+  /* Controlled height for smooth parallax without infinite empty scroll */
   position: relative;
-  background: linear-gradient(180deg, #FFFFFF, var(--cargo-blue-xl) 10%, var(--cargo-blue-l));
+  background: linear-gradient(180deg, #FFFFFF, var(--cargo-blue-xl) 12%, var(--cargo-blue-l));
 }
 
 .landing-jstick {
   position: sticky;
-  top: 66px;
-  height: calc(100vh - 66px);
-  min-height: 520px;
+  top: 68px;
+  /* Sticks right below the 68px sticky header */
+  height: calc(100vh - 68px);
+  min-height: 540px;
+  max-height: 860px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   overflow: hidden;
+  z-index: 25;
+}
+
+/* Upper container: Journey Header + 4 Milestone Cards */
+.landing-jcontent {
+  position: relative;
+  z-index: 20;
+  padding: 140px 20px 0;
+  max-width: 1140px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .landing-road {
@@ -356,16 +2186,18 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 88px;
+  height: 82px;
   background: #1B3B5A;
-  border-top: 6px solid #2C557D;
+  border-top: 5px solid #2C557D;
+  z-index: 10;
 }
+
 .landing-road:after {
   content: "";
   position: absolute;
   left: 0;
   right: 0;
-  top: 40px;
+  top: 36px;
   height: 6px;
   background: repeating-linear-gradient(90deg, var(--cargo-yellow) 0 46px, transparent 46px 92px);
   background-position: var(--rx, 0px) 0;
@@ -373,11 +2205,12 @@
 
 .landing-truck {
   position: absolute;
-  bottom: 48px;
+  bottom: 44px;
+  /* Perfectly aligned to sit on top of the road surface */
   left: 0;
-  width: 250px;
+  width: 260px;
   will-change: transform;
-  z-index: 4;
+  z-index: 15;
   filter: drop-shadow(0 14px 10px rgba(11, 37, 64, 0.35));
 }
 
@@ -392,48 +2225,52 @@
 }
 
 .landing-stops {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 32%;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  padding: 0 4vw;
-  z-index: 3;
+  width: 100%;
+  margin-top: 18px;
 }
 
 .landing-stop {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1.5px solid var(--cargo-line);
   border-radius: 20px;
-  padding: 20px 16px;
+  padding: 16px 14px;
   text-align: center;
-  transition: all 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
-  opacity: 0.5;
-  transform: translateY(12px) scale(0.96);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0.55;
+  transform: translateY(8px) scale(0.97);
+  box-shadow: 0 8px 24px -10px rgba(15, 76, 129, 0.15);
+  cursor: pointer;
+}
+
+.landing-stop:hover {
+  opacity: 0.85;
+  transform: translateY(2px) scale(0.99);
 }
 
 .landing-stop.on {
   opacity: 1;
-  transform: translateY(-8px) scale(1.04);
+  transform: translateY(-6px) scale(1.03);
   border-color: var(--cargo-blue);
-  box-shadow: 0 24px 40px -20px rgba(30, 117, 187, 0.6);
+  box-shadow: 0 20px 36px -16px rgba(30, 117, 187, 0.55);
   background: #FFFFFF;
 }
 
 .landing-stop .num {
-  width: 46px;
-  height: 46px;
-  margin: 0 auto 10px;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 8px;
   border-radius: 50%;
   background: var(--cargo-blue-l);
   display: grid;
   place-items: center;
   font: 700 1.15rem 'Space Grotesk', sans-serif;
   color: var(--cargo-blue);
-  transition: all 0.4s;
+  transition: all 0.3s;
 }
 
 .landing-stop.on .num {
@@ -442,41 +2279,62 @@
   box-shadow: 0 0 0 6px rgba(255, 199, 44, 0.35);
 }
 
-/* Reveal on Scroll */
-.landing-reveal {
-  opacity: 0;
-  transform: translateY(35px);
-  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
-}
-.landing-reveal.in {
-  opacity: 1;
-  transform: none;
-}
-
 @media (max-width: 860px) {
   .landing-stage {
     height: 330px;
   }
+
+  .landing-center-truck-wrapper {
+    width: 230px;
+    height: 140px;
+    margin: -70px 0 0 -115px;
+  }
+
+
+
+
+  .landing-ringline {
+    width: 270px;
+    height: 100px;
+    margin: -50px 0 0 -135px;
+  }
+
   .landing-stops {
-    gap: 6px;
-    padding: 0 10px;
-    top: 28%;
+    gap: 8px;
+    margin-top: 12px;
   }
+
   .landing-stop {
-    padding: 12px 6px;
+    padding: 10px 6px;
+    border-radius: 14px;
   }
+
   .landing-stop p {
-    display: none;
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: var(--cargo-text-m);
+    margin-top: 3px;
+    display: block;
   }
+
   .landing-stop h3 {
     font-size: 0.78rem;
+    margin-bottom: 0;
   }
+
   .landing-stop .num {
-    width: 36px;
-    height: 36px;
-    font-size: 0.95rem;
+    width: 34px;
+    height: 34px;
+    font-size: 0.92rem;
+    margin-bottom: 4px;
   }
+
   .landing-truck {
-    width: 170px;
+    width: 175px;
+    bottom: 40px;
+  }
+
+  .landing-road {
+    height: 72px;
   }
 }

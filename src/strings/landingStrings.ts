@@ -12,6 +12,10 @@ export interface LandingContent {
     lead: string;
     ctaPrimary: string;
     ctaSecondary: string;
+    tagEasy: string;
+    tagFast: string;
+    tagReliable: string;
+    chipShipping: string;
     chipPhoto: string;
     chipStatus: string;
     badgePhoto: string;
@@ -52,13 +56,19 @@ export interface LandingContent {
   contact: {
     heading: string;
     subheading: string;
-    viber: string;
-    telegram: string;
-    call: string;
-    messenger: string;
+    phoneLabel: string;
     phoneDisplay: string;
-    warehouseAddress: string;
-    addressDetail: string;
+    phoneHref: string;
+    emailLabel: string;
+    emailDisplay: string;
+    emailHref: string;
+    facebookLabel: string;
+    facebookHref: string;
+    messengerLabel: string;
+    messengerHref: string;
+    addressLabel: string;
+    addressText: string;
+    mapsHref: string;
   };
   footer: {
     copyright: string;
@@ -81,8 +91,12 @@ export const landingStrings: Record<'en' | 'my', LandingContent> = {
       lead: "Send your parcels to our warehouse. We receive, photograph, pack and deliver them for you, so you always know where your goods are.",
       ctaPrimary: "Contact Us",
       ctaSecondary: "See How It Works",
-      chipPhoto: "Photo for every parcel",
-      chipStatus: "Live status updates",
+      tagEasy: "Safe",
+      tagFast: "Fast",
+      tagReliable: "Reliable",
+      chipShipping: "Fast, Safe and Reliable Shipping",
+      chipPhoto: "Fast, Safe and Reliable Shipping",
+      chipStatus: "Fast, Safe and Reliable Shipping",
       badgePhoto: "100% Photo Proof",
       badgeWeight: "Precise Measurement",
       badgeBilingual: "English & Burmese Support"
@@ -128,13 +142,19 @@ export const landingStrings: Record<'en' | 'my', LandingContent> = {
     contact: {
       heading: "Ready to send your cargo?",
       subheading: "Get in touch with our team today and we will guide you through the process.",
-      viber: "Message on Viber",
-      telegram: "Chat on Telegram",
-      call: "Call Us Now",
-      messenger: "Facebook Messenger",
-      phoneDisplay: "+66 82 123 4567 / +95 9 123 456 789",
-      warehouseAddress: "Bangkok & Yangon Cargo Hubs",
-      addressDetail: "Daily intake & scheduled cross-border transport"
+      phoneLabel: "Phone Call",
+      phoneDisplay: "+66 064 554 4483",
+      phoneHref: "tel:+660645544483",
+      emailLabel: "Email Us",
+      emailDisplay: "satkyar2024@gmail.com",
+      emailHref: "mailto:satkyar2024@gmail.com",
+      facebookLabel: "Facebook Page",
+      facebookHref: "https://www.facebook.com/profile.php?id=61562897885529",
+      messengerLabel: "Facebook Messenger",
+      messengerHref: "https://www.facebook.com/messages/t/392106177317220",
+      addressLabel: "Warehouse Address",
+      addressText: "Bangkok Yai, Thailand, 10150",
+      mapsHref: "https://www.google.com/maps/search/?api=1&query=Bangkok+Yai,+Thailand,+10150"
     },
     footer: {
       copyright: "© 2026 SK Cargo. All rights reserved.",
@@ -151,12 +171,16 @@ export const landingStrings: Record<'en' | 'my', LandingContent> = {
     hero: {
       tag: "လျင်မြန် · ဘေးကင်း · ပွင့်လင်း",
       headlineA: "သင့်ပါဆယ်များကို",
-      headlineB: "ဂရုတစိုက် ထုပ်ပိုးပေးပါမည်။",
+      headlineB: "ဂရုတစိုက် ထုပ်ပိုး\u200Bပေးပါမည်။",
       lead: "သင့်ပါဆယ်များကို ကျွန်ုပ်တို့ဂိုဒေါင်သို့ပို့ပါ။ လက်ခံ၊ ဓာတ်ပုံရိုက်၊ စနစ်တကျထုပ်ပိုးပြီး အိမ်အရောက်ပို့ဆောင်ပေးသဖြင့် သင့်ကုန်ပစ္စည်းမည်သည့်နေရာရှိသည်ကို အမြဲစိတ်ချစွာ သိရှိနိုင်ပါသည်။",
       ctaPrimary: "ဆက်သွယ်ရန်",
       ctaSecondary: "လုပ်ငန်းစဉ်ကြည့်မည်",
-      chipPhoto: "ပါဆယ်တိုင်း ဓာတ်ပုံမှတ်တမ်း",
-      chipStatus: "အခြေအနေ အသိပေးချက်များ",
+      tagEasy: "လွယ်ကူ",
+      tagFast: "မြန်ဆန်",
+      tagReliable: "စိတ်ချရ",
+      chipShipping: "လွယ်ကူ၊ မြန်ဆန်၊ စိတ်ချရ",
+      chipPhoto: "လွယ်ကူ၊ မြန်ဆန်၊ စိတ်ချရ",
+      chipStatus: "လွယ်ကူ၊ မြန်ဆန်၊ စိတ်ချရ",
       badgePhoto: "၁၀၀% ဓာတ်ပုံမှတ်တမ်း",
       badgeWeight: "တိကျသော အလေးချိန်နှင့် အရွယ်အစား",
       badgeBilingual: "မြန်မာ/အင်္ဂလိပ် နှစ်ဘာသာ ဝန်ဆောင်မှု"
@@ -202,13 +226,19 @@ export const landingStrings: Record<'en' | 'my', LandingContent> = {
     contact: {
       heading: "ကုန်စည်ပို့ဆောင်ရန် အဆင်သင့်ဖြစ်ပြီလား။",
       subheading: "ယနေ့ပင် ဆက်သွယ်လိုက်ပါ။ ကုန်စည်များ ပို့ဆောင်နိုင်ရန် ကျွန်ုပ်တို့အဖွဲ့မှ ကူညီဆောင်ရွက်ပေးပါမည်။",
-      viber: "Viber ဖြင့် စာပို့ရန်",
-      telegram: "Telegram ဖြင့် မေးမြန်းရန်",
-      call: "ဖုန်းခေါ်ဆိုရန်",
-      messenger: "Facebook မက်ဆေ့ဂျာ",
-      phoneDisplay: "+66 82 123 4567 / +95 9 123 456 789",
-      warehouseAddress: "ဘန်ကောက်နှင့် ရန်ကုန် ကုန်စည်ဂိုဒေါင်များ",
-      addressDetail: "နေ့စဉ် ကုန်လက်ခံခြင်းနှင့် ပုံမှန်နယ်စပ်ဖြတ်ကျော် သယ်ယူပို့ဆောင်ရေး"
+      phoneLabel: "ဖုန်းခေါ်ဆိုရန်",
+      phoneDisplay: "+66 064 554 4483",
+      phoneHref: "tel:+660645544483",
+      emailLabel: "အီးမေးလ် ပို့ရန်",
+      emailDisplay: "satkyar2024@gmail.com",
+      emailHref: "mailto:satkyar2024@gmail.com",
+      facebookLabel: "Facebook စာမျက်နှာ",
+      facebookHref: "https://www.facebook.com/profile.php?id=61562897885529",
+      messengerLabel: "Facebook မက်ဆေ့ဂျာ",
+      messengerHref: "https://www.facebook.com/messages/t/392106177317220",
+      addressLabel: "ဂိုဒေါင် လိပ်စာ",
+      addressText: "Bangkok Yai, Thailand, 10150",
+      mapsHref: "https://www.google.com/maps/search/?api=1&query=Bangkok+Yai,+Thailand,+10150"
     },
     footer: {
       copyright: "© 2026 SK Cargo. မူပိုင်ခွင့်များ ရယူထားပြီးဖြစ်သည်။",
