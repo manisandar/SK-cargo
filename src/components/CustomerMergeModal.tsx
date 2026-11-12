@@ -52,7 +52,7 @@ export const CustomerMergeModal: React.FC<CustomerMergeModalProps> = ({
 
     if (
       !window.confirm(
-        `Are you sure you want to merge "${sourceCustomer?.name}" into "${targetCustomer?.name}"? All ${sourceParcels.length} parcels (${sourceWeight.toFixed(1)} kg) will be reassigned, and "${sourceCustomer?.name}" will be deleted.`
+        `Are you sure you want to merge "${sourceCustomer?.name}" into "${targetCustomer?.name}"? All ${sourceParcels.length} parcels (${sourceWeight.toFixed(2)} kg) will be reassigned, and "${sourceCustomer?.name}" will be deleted.`
       )
     ) {
       return;
@@ -126,7 +126,7 @@ export const CustomerMergeModal: React.FC<CustomerMergeModalProps> = ({
                 <span>
                   <strong>Keep:</strong> {targetCustomer.name} ({targetCustomer.code})
                 </span>
-                <span className="font-bold">{targetParcels.length} lots ({targetWeight.toFixed(1)} kg)</span>
+                <span className="font-bold">{targetParcels.length} lots ({targetWeight.toFixed(2)} kg)</span>
               </div>
             )}
           </div>
@@ -155,7 +155,7 @@ export const CustomerMergeModal: React.FC<CustomerMergeModalProps> = ({
                 <span>
                   <strong>Merge & Delete:</strong> {sourceCustomer.name} ({sourceCustomer.code})
                 </span>
-                <span className="font-bold">{sourceParcels.length} lots ({sourceWeight.toFixed(1)} kg) to transfer</span>
+                <span className="font-bold">{sourceParcels.length} lots ({sourceWeight.toFixed(2)} kg) to transfer</span>
               </div>
             )}
           </div>
@@ -165,7 +165,7 @@ export const CustomerMergeModal: React.FC<CustomerMergeModalProps> = ({
             <div className="p-2.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 rounded-xl text-[11px] text-blue-900 dark:text-blue-300 flex items-center justify-between font-semibold">
               <span>Combined Total Preview:</span>
               <span className="font-extrabold text-[#1E75BB] dark:text-[#2D8AD1]">
-                {combinedLots} lots ({combinedWeight.toFixed(1)} kg)
+                {combinedLots} lots ({combinedWeight.toFixed(2)} kg)
               </span>
             </div>
           )}

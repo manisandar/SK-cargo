@@ -14,6 +14,7 @@ import {
   Loader2,
   Users,
   ChevronRight,
+  Download,
 } from 'lucide-react';
 
 export const AdminDashboardScreen: React.FC = () => {
@@ -29,6 +30,7 @@ export const AdminDashboardScreen: React.FC = () => {
 
   const [kpis, setKpis] = useState<AdminKPIData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
 
   const calculateDateRange = useCallback(() => {
     const today = getTodayIsoDate();
@@ -100,10 +102,227 @@ export const AdminDashboardScreen: React.FC = () => {
       .slice(0, 5);
   }, [kpis?.topCustomers, customerSort]);
 
+  // Export Unified Operations & Audit CSV in decreasing date order
+  const handleExportCSV = async () => {
+    try {
+      setIsExporting(true);
+      const range = calculateDateRange();
+
+      const [allParcels, allBoxes, allCouriers, staffUsers, auditHistory] = await Promise.all([
+        repository.getParcels(),
+        repository.getBoxes(),
+        repository.getCouriers(),
+        repository.getStaffUsers(),
+        repository.getAllStatusHistory({
+          dateFrom: range?.from,
+          dateTo: range?.to,
+          limit: 5000,
+        }),
+      ]);
+
+      const staffMap = new Map<string, string>(
+        staffUsers.map((u) => [u.id, `${u.name} (${u.role})`])
+      );
+
+      interface ExportRow {
+        timestamp: string;
+        date: string;
+        recordType: string;
+        refCode: string;
+        customerOrDestination: string;
+        recipient: string;
+        statusOrAction: string;
+        qtyPcs: number | string;
+        weightKg: number | string;
+        dimensionsInches: string;
+        details: string;
+        performedBy: string;
+        notes: string;
+      }
+
+      const rows: ExportRow[] = [];
+
+      // 1. Parcels within date range
+      for (const p of allParcels) {
+        const pDate = (p.received_at || '').split('T')[0];
+        if (range?.from && pDate < range.from) continue;
+        if (range?.to && pDate > range.to) continue;
+
+        const customerInfo = p.customer ? `${p.customer.name} (${p.customer.code})` : 'Unknown';
+        const recipients = Array.from(
+          new Set((p.items || []).map((it) => it.name_on_parcel).filter(Boolean))
+        ).join('; ');
+        const dims = (p.items || [])
+          .filter((it) => it.length_cm > 0)
+          .map((it) => `${it.length_cm}x${it.width_cm}x${it.height_cm} in`)
+          .join('; ');
+        const itemContents = (p.items || [])
+          .map((it) => `${it.qty}x ${it.item_name || it.name_on_parcel}`)
+          .join('; ');
+
+        rows.push({
+          timestamp: p.received_at || p.created_at || `${pDate}T00:00:00`,
+          date: pDate,
+          recordType: 'PARCEL',
+          refCode: p.parcel_code,
+          customerOrDestination: customerInfo,
+          recipient: recipients || '-',
+          statusOrAction: p.status,
+          qtyPcs: p.total_qty,
+          weightKg: p.total_weight_kg.toFixed(2),
+          dimensionsInches: dims || '-',
+          details: itemContents || '-',
+          performedBy: staffMap.get(p.created_by) || 'Staff',
+          notes: (p as any).notes || '-',
+        });
+      }
+
+      // 2. Repacking Boxes within date range
+      for (const b of allBoxes) {
+        const bTimestamp = b.created_at || '';
+        const bDate = bTimestamp.split('T')[0];
+        if (range?.from && bDate < range.from) continue;
+        if (range?.to && bDate > range.to) continue;
+
+        const boxContents = `${b.parcels_count || b.items.length} lots packed (${b.total_pieces} pcs)`;
+
+        rows.push({
+          timestamp: bTimestamp || `${bDate}T00:00:00`,
+          date: bDate,
+          recordType: 'REPACK_BOX',
+          refCode: b.box_code,
+          customerOrDestination: 'Warehouse Repacked Box',
+          recipient: '-',
+          statusOrAction: b.status,
+          qtyPcs: b.total_pieces,
+          weightKg: (b.total_weight_kg || 0).toFixed(2),
+          dimensionsInches: '-',
+          details: boxContents,
+          performedBy: staffMap.get(b.created_by) || 'Staff',
+          notes: '-',
+        });
+      }
+
+      // 3. Couriers within date range
+      for (const c of allCouriers) {
+        const cTimestamp = c.dispatch_date ? `${c.dispatch_date}T00:00:00` : c.created_at || '';
+        const cDate = (c.dispatch_date || c.created_at || '').split('T')[0];
+        if (range?.from && cDate < range.from) continue;
+        if (range?.to && cDate > range.to) continue;
+
+        const courierDetails = `${c.boxes.length} boxes, ${c.loose_items.length} loose items`;
+
+        rows.push({
+          timestamp: cTimestamp || `${cDate}T00:00:00`,
+          date: cDate,
+          recordType: 'COURIER_TRUCK',
+          refCode: c.courier_code,
+          customerOrDestination: `Truck: ${c.truck_no}`,
+          recipient: '-',
+          statusOrAction: c.status,
+          qtyPcs: c.total_pieces_count,
+          weightKg: (c.total_weight_kg || 0).toFixed(2),
+          dimensionsInches: '-',
+          details: courierDetails,
+          performedBy: staffMap.get(c.created_by) || 'Staff',
+          notes: '-',
+        });
+      }
+
+      // 4. System Audit Logs within date range
+      for (const h of auditHistory) {
+        const hTimestamp = h.changed_at;
+        const hDate = (hTimestamp || '').split('T')[0];
+
+        rows.push({
+          timestamp: hTimestamp,
+          date: hDate,
+          recordType: 'AUDIT_LOG',
+          refCode: h.entity_label || h.entity_id,
+          customerOrDestination: `Entity: ${h.entity_type.toUpperCase()}`,
+          recipient: '-',
+          statusOrAction: `${h.from_status || 'initial'} -> ${h.to_status}`,
+          qtyPcs: '-',
+          weightKg: '-',
+          dimensionsInches: '-',
+          details: `Status Change (${h.entity_type})`,
+          performedBy: h.changed_by_name || 'Staff',
+          notes: h.note || '-',
+        });
+      }
+
+      // Strict decreasing order of date / timestamp (latest first)
+      rows.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+
+      // Build CSV content
+      const headers = [
+        'Timestamp',
+        'Date',
+        'Record_Type',
+        'Reference_Code',
+        'Customer_Or_Destination',
+        'Recipient',
+        'Status_Or_Action',
+        'Pieces_Count',
+        'Weight_Kg',
+        'Dimensions_Inches',
+        'Details_Contents',
+        'Performed_By',
+        'Notes',
+      ];
+
+      const escapeCSV = (val: any) => {
+        if (val === null || val === undefined) return '""';
+        const str = String(val).replace(/"/g, '""');
+        return `"${str}"`;
+      };
+
+      const csvLines = [
+        headers.join(','),
+        ...rows.map((r) =>
+          [
+            escapeCSV(r.timestamp),
+            escapeCSV(r.date),
+            escapeCSV(r.recordType),
+            escapeCSV(r.refCode),
+            escapeCSV(r.customerOrDestination),
+            escapeCSV(r.recipient),
+            escapeCSV(r.statusOrAction),
+            escapeCSV(r.qtyPcs),
+            escapeCSV(r.weightKg),
+            escapeCSV(r.dimensionsInches),
+            escapeCSV(r.details),
+            escapeCSV(r.performedBy),
+            escapeCSV(r.notes),
+          ].join(',')
+        ),
+      ];
+
+      // Prepend UTF-8 BOM so Microsoft Excel renders accented and special characters correctly
+      const blob = new Blob(['\uFEFF' + csvLines.join('\r\n')], {
+        type: 'text/csv;charset=utf-8;',
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const filenameDate = range?.from ? `${range.from}_to_${range.to || range.from}` : 'all_time';
+      link.href = url;
+      link.setAttribute('download', `sk_cargo_operations_${filenameDate}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export CSV:', err);
+      alert('Failed to generate CSV export. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4 space-y-3 sm:space-y-4">
-      {/* Top Header with Refresh Icon right beside Warehouse KPI */}
-      <div className="flex items-center justify-between gap-2">
+      {/* Top Header with Refresh Icon and Export CSV Button */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
           <div className="flex items-center gap-1.5 sm:gap-2">
             <LayoutDashboard className="w-5 h-5 sm:w-6 sm:h-6 text-[#1E75BB] dark:text-[#2D8AD1] shrink-0" />
@@ -121,6 +340,24 @@ export const AdminDashboardScreen: React.FC = () => {
           <p className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400">
             {strings.admin.dashboardSubtitle}
           </p>
+        </div>
+
+        {/* Top Header Actions: Export CSV Button */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleExportCSV}
+            disabled={isExporting}
+            className="px-3 py-1.5 bg-[#1E75BB] hover:bg-[#165B94] active:bg-[#124673] text-white rounded-xl text-xs font-bold shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 min-h-[34px] cursor-pointer disabled:opacity-50"
+            title="Export all operations, parcels, repacking, couriers, and audit logs for the selected date range"
+          >
+            {isExporting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Download className="w-3.5 h-3.5" />
+            )}
+            <span>Export CSV</span>
+          </button>
         </div>
       </div>
 
@@ -148,7 +385,7 @@ export const AdminDashboardScreen: React.FC = () => {
                   {kpis?.storedPieces || 0} <span className="text-xs font-bold text-slate-500">pcs</span>
                 </div>
                 <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 flex items-center justify-between">
-                  <span>{(kpis?.storedWeightKg || 0).toFixed(1)} kg</span>
+                  <span>{(kpis?.storedWeightKg || 0).toFixed(2)} kg</span>
                   <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded">
                     {kpis?.storedParcelsCount || 0} lots
                   </span>
@@ -171,7 +408,7 @@ export const AdminDashboardScreen: React.FC = () => {
                   {kpis?.activeTrucksCount || 0} <span className="text-xs font-bold text-slate-500">trucks</span>
                 </div>
                 <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 flex items-center justify-between">
-                  <span>{(kpis?.inTransitWeightKg || 0).toFixed(1)} kg</span>
+                  <span>{(kpis?.inTransitWeightKg || 0).toFixed(2)} kg</span>
                   <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded">
                     {kpis?.inTransitBoxesCount || 0} boxes
                   </span>
@@ -194,7 +431,7 @@ export const AdminDashboardScreen: React.FC = () => {
                   {kpis?.deliveredPieces || 0} <span className="text-xs font-bold text-slate-500">pcs</span>
                 </div>
                 <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 flex items-center justify-between">
-                  <span>{(kpis?.deliveredWeightKg || 0).toFixed(1)} kg</span>
+                  <span>{(kpis?.deliveredWeightKg || 0).toFixed(2)} kg</span>
                   <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded">
                     {kpis?.deliveredParcelsCount || 0} lots
                   </span>
@@ -217,7 +454,7 @@ export const AdminDashboardScreen: React.FC = () => {
                   {kpis?.returnedPieces || 0} <span className="text-xs font-bold text-slate-500">pcs</span>
                 </div>
                 <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 flex items-center justify-between">
-                  <span>{(kpis?.returnedWeightKg || 0).toFixed(1)} kg</span>
+                  <span>{(kpis?.returnedWeightKg || 0).toFixed(2)} kg</span>
                   {(kpis?.toBeReturnedCount || 0) > 0 ? (
                     <span className="font-mono text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 font-bold px-1 py-0.2 rounded">
                       {kpis?.toBeReturnedCount} to return
@@ -251,7 +488,7 @@ export const AdminDashboardScreen: React.FC = () => {
                       {kpis?.intakePieces || 0} pcs
                     </span>
                     <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[11px] font-bold">
-                      {(kpis?.intakeWeightKg || 0).toFixed(1)} kg
+                      {(kpis?.intakeWeightKg || 0).toFixed(2)} kg
                     </span>
                     <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[11px] font-mono font-semibold">
                       {kpis?.intakeCount || 0} shipments
@@ -379,7 +616,7 @@ export const AdminDashboardScreen: React.FC = () => {
                               <div className="absolute -top-11 z-30 bg-slate-900 text-white dark:bg-white dark:text-slate-900 text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-xl whitespace-nowrap pointer-events-none animate-in fade-in zoom-in-95 border border-slate-700 dark:border-slate-200">
                                 <div>{d.displayDate} ({d.date})</div>
                                 <div className="text-blue-300 dark:text-blue-600 font-extrabold">
-                                  {d.weightKg} kg • {d.lotsCount} lots • {d.pieces} pcs
+                                  {d.weightKg.toFixed(2)} kg • {d.lotsCount} lots • {d.pieces} pcs
                                 </div>
                               </div>
                             )}
@@ -387,7 +624,7 @@ export const AdminDashboardScreen: React.FC = () => {
                             {/* Value Above Bar */}
                             <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 mb-1 group-hover:text-[#1E75BB] dark:group-hover:text-[#2D8AD1] transition-colors truncate">
                               {graphMetric === 'weight'
-                                ? `${d.weightKg}`
+                                ? `${d.weightKg.toFixed(2)}`
                                 : graphMetric === 'shipments'
                                 ? `${d.lotsCount}`
                                 : `${d.pieces}`}
@@ -488,7 +725,7 @@ export const AdminDashboardScreen: React.FC = () => {
                           <span>{c.total_pieces_count} pcs</span>
                           <span>•</span>
                           <span className="font-bold text-[#1E75BB] dark:text-[#2D8AD1]">
-                            {(c.total_weight_kg || 0).toFixed(1)} kg
+                            {(c.total_weight_kg || 0).toFixed(2)} kg
                           </span>
                         </div>
                         <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
@@ -565,7 +802,7 @@ export const AdminDashboardScreen: React.FC = () => {
                       <div className="text-right shrink-0">
                         {customerSort === 'weight' ? (
                           <div className="font-extrabold text-xs text-[#1E75BB] dark:text-[#2D8AD1]">
-                            {cust.totalWeightKg.toFixed(1)} kg
+                            {cust.totalWeightKg.toFixed(2)} kg
                           </div>
                         ) : (
                           <div className="font-extrabold text-xs text-[#1E75BB] dark:text-[#2D8AD1]">
@@ -573,7 +810,7 @@ export const AdminDashboardScreen: React.FC = () => {
                           </div>
                         )}
                         <div className="text-[10px] text-slate-400 font-medium">
-                          {customerSort === 'weight' ? `${cust.parcelsCount} lots` : `${cust.totalWeightKg.toFixed(1)} kg`}
+                          {customerSort === 'weight' ? `${cust.parcelsCount} lots` : `${cust.totalWeightKg.toFixed(2)} kg`}
                         </div>
                       </div>
                     </div>

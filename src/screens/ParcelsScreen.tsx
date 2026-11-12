@@ -133,7 +133,7 @@ export const ParcelsScreen: React.FC = () => {
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
             {strings.parcelsList.totalFound(filteredParcels.length, totalPieces)} •{' '}
-            {(totalWeight || 0).toFixed(1)} kg total
+            {(totalWeight || 0).toFixed(2)} kg total
           </p>
         </div>
 
@@ -419,7 +419,7 @@ export const ParcelsScreen: React.FC = () => {
                     <Layers className="w-3.5 h-3.5 text-[#1E75BB] dark:text-[#2D8AD1]" />
                     <span>{p.total_qty || 0} pcs</span>
                     <span className="text-slate-300 dark:text-slate-600 font-normal">•</span>
-                    <span>{(p.total_weight_kg || 0).toFixed(1)} kg</span>
+                    <span>{(p.total_weight_kg || 0).toFixed(2)} kg</span>
                   </div>
 
                   <div className="flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-400 font-medium">

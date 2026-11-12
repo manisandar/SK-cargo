@@ -576,7 +576,7 @@ export const RepackingScreen: React.FC = () => {
                       <span className="text-slate-400 dark:text-slate-500 font-normal">({box.parcels_count} packages)</span>
                     </div>
                     <div className="font-extrabold text-[#1E75BB] dark:text-[#2D8AD1]">
-                      {(box.total_weight_kg || 0).toFixed(1)} kg total
+                      {(box.total_weight_kg || 0).toFixed(2)} kg total
                     </div>
                   </div>
 
@@ -680,7 +680,7 @@ export const RepackingScreen: React.FC = () => {
                     Total Cargo: <span className="text-[#1E75BB] dark:text-[#2D8AD1]">{activeBox.total_pieces || 0} pcs</span> ({activeBox.parcels_count || 0} packages)
                   </div>
                   <div>
-                    Weight: <span className="text-[#1E75BB] dark:text-[#2D8AD1]">{(activeBox.total_weight_kg || 0).toFixed(1)} kg</span>
+                    Weight: <span className="text-[#1E75BB] dark:text-[#2D8AD1]">{(activeBox.total_weight_kg || 0).toFixed(2)} kg</span>
                   </div>
                 </div>
 
@@ -815,7 +815,7 @@ export const RepackingScreen: React.FC = () => {
                             </span>
                           </div>
                           <div className="text-[11px] text-slate-600 dark:text-slate-300">
-                            {group.totalPieces} pcs • {(group.totalWeight || 0).toFixed(1)} kg
+                            {group.totalPieces} pcs • {(group.totalWeight || 0).toFixed(2)} kg
                           </div>
                         </div>
 
@@ -849,7 +849,7 @@ export const RepackingScreen: React.FC = () => {
                                       </span>
                                     </div>
                                     <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                      {it.qty} pcs • {it.item?.weight_per_piece_kg || 0} kg/pc ({(it.weight_kg || 0).toFixed(1)} kg)
+                                      {it.qty} pcs • {it.item?.weight_per_piece_kg || 0} kg/pc ({(it.weight_kg || 0).toFixed(2)} kg)
                                     </div>
                                   </div>
                                 </div>

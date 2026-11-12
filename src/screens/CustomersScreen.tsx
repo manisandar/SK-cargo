@@ -383,7 +383,7 @@ export const CustomersScreen: React.FC = () => {
                           {strings.customers.totalShipments(shipmentCount)}
                         </span>
                         <span className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[11px] font-bold">
-                          {totalWeight.toFixed(1)} kg
+                          {totalWeight.toFixed(2)} kg
                         </span>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-slate-400 font-semibold">
@@ -420,7 +420,7 @@ export const CustomersScreen: React.FC = () => {
                     {selectedCustomer.code}
                   </span>
                   <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    • {strings.customers.totalShipments(selectedCustomerLogs.length)} • {selectedCustomerLogs.reduce((sum, p) => sum + (p.total_weight_kg || 0), 0).toFixed(1)} kg
+                    • {strings.customers.totalShipments(selectedCustomerLogs.length)} • {selectedCustomerLogs.reduce((sum, p) => sum + (p.total_weight_kg || 0), 0).toFixed(2)} kg
                   </span>
                 </div>
 
@@ -516,7 +516,7 @@ export const CustomersScreen: React.FC = () => {
                           </span>
                           <span className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
                             <Scale className="w-3.5 h-3.5 text-[#1E75BB] dark:text-[#2D8AD1]" />
-                            {(log.total_weight_kg || 0).toFixed(1)} {strings.common.kg}
+                            {(log.total_weight_kg || 0).toFixed(2)} {strings.common.kg}
                           </span>
                         </div>
                       </div>
@@ -554,7 +554,7 @@ export const CustomersScreen: React.FC = () => {
                                   {item.qty} {strings.common.pcs}
                                 </div>
                                 <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                                  {(item.weight_kg || 0).toFixed(1)} {strings.common.kg}
+                                  {(item.weight_kg || 0).toFixed(2)} {strings.common.kg}
                                 </div>
                               </div>
                             </div>

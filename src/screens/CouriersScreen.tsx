@@ -726,7 +726,7 @@ export const CouriersScreen: React.FC = () => {
                     </div>
 
                     <div className="font-extrabold text-[#1E75BB] dark:text-[#2D8AD1]">
-                      {(c.total_weight_kg || 0).toFixed(1)} kg total
+                      {(c.total_weight_kg || 0).toFixed(2)} kg total
                     </div>
                   </div>
 
@@ -944,7 +944,7 @@ export const CouriersScreen: React.FC = () => {
 
                   <div className="text-right shrink-0">
                     <div className="font-extrabold text-[#1E75BB] dark:text-[#2D8AD1]">
-                      {activeCourier.total_pieces_count || 0} pieces ({(activeCourier.total_weight_kg || 0).toFixed(1)} kg)
+                      {activeCourier.total_pieces_count || 0} pieces ({(activeCourier.total_weight_kg || 0).toFixed(2)} kg)
                     </div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400">
                       {activeCourier.total_boxes_count || 0} boxes • {(activeCourier.loose_items || []).length} loose packages
@@ -1148,7 +1148,7 @@ export const CouriersScreen: React.FC = () => {
                                     <span>{b.box_code}</span>
                                   </div>
                                   <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                    {b.total_pieces || 0} pieces ({b.parcels_count || 0} packages) • {(b.total_weight_kg || 0).toFixed(1)} kg
+                                    {b.total_pieces || 0} pieces ({b.parcels_count || 0} packages) • {(b.total_weight_kg || 0).toFixed(2)} kg
                                   </div>
                                 </div>
                               </div>
@@ -1224,7 +1224,7 @@ export const CouriersScreen: React.FC = () => {
                                     </span>
                                   </div>
                                   <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                                    {li.qty} pcs • {li.item?.weight_per_piece_kg || 0} kg/pc ({(li.weight_kg || 0).toFixed(1)} kg)
+                                    {li.qty} pcs • {li.item?.weight_per_piece_kg || 0} kg/pc ({(li.weight_kg || 0).toFixed(2)} kg)
                                   </div>
                                 </div>
                               </div>
@@ -1291,7 +1291,7 @@ export const CouriersScreen: React.FC = () => {
                         <div>
                           <div className="font-black text-xs text-[#1E75BB] dark:text-[#2D8AD1]">{b.box_code}</div>
                           <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                            {b.total_pieces || 0} pieces ({b.parcels_count || 0} packages) • {(b.total_weight_kg || 0).toFixed(1)} kg
+                            {b.total_pieces || 0} pieces ({b.parcels_count || 0} packages) • {(b.total_weight_kg || 0).toFixed(2)} kg
                           </div>
                         </div>
 

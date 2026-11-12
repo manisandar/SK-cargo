@@ -582,7 +582,7 @@ export const ParcelDetailModal: React.FC<ParcelDetailModalProps> = ({
                 </span>
               </div>
               <div className="font-extrabold text-[#1E75BB] dark:text-[#2D8AD1]">
-                {(parcel.total_weight_kg || 0).toFixed(1)} kg total
+                {(parcel.total_weight_kg || 0).toFixed(2)} kg total
               </div>
             </div>
 
@@ -786,21 +786,21 @@ export const ParcelDetailModal: React.FC<ParcelDetailModalProps> = ({
                     <div className="grid grid-cols-3 gap-1.5">
                       <input
                         type="number"
-                        placeholder="L"
+                        placeholder="L (in)"
                         value={newItemLength}
                         onChange={(e) => setNewItemLength(e.target.value)}
                         className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-center text-xs text-slate-800 dark:text-slate-100"
                       />
                       <input
                         type="number"
-                        placeholder="W"
+                        placeholder="W (in)"
                         value={newItemWidth}
                         onChange={(e) => setNewItemWidth(e.target.value)}
                         className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-center text-xs text-slate-800 dark:text-slate-100"
                       />
                       <input
                         type="number"
-                        placeholder="H"
+                        placeholder="H (in)"
                         value={newItemHeight}
                         onChange={(e) => setNewItemHeight(e.target.value)}
                         className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-center text-xs text-slate-800 dark:text-slate-100"
@@ -962,21 +962,21 @@ export const ParcelDetailModal: React.FC<ParcelDetailModalProps> = ({
                         <div className="grid grid-cols-3 gap-1.5">
                           <input
                             type="number"
-                            placeholder="L"
+                            placeholder="L (in)"
                             value={editItemLength}
                             onChange={(e) => setEditItemLength(e.target.value)}
                             className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-center text-xs text-slate-800 dark:text-slate-100"
                           />
                           <input
                             type="number"
-                            placeholder="W"
+                            placeholder="W (in)"
                             value={editItemWidth}
                             onChange={(e) => setEditItemWidth(e.target.value)}
                             className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-center text-xs text-slate-800 dark:text-slate-100"
                           />
                           <input
                             type="number"
-                            placeholder="H"
+                            placeholder="H (in)"
                             value={editItemHeight}
                             onChange={(e) => setEditItemHeight(e.target.value)}
                             className="px-2 py-1 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-center text-xs text-slate-800 dark:text-slate-100"
@@ -1109,12 +1109,12 @@ export const ParcelDetailModal: React.FC<ParcelDetailModalProps> = ({
                         </div>
 
                         <div className="text-[11px] text-slate-600 dark:text-slate-300 font-semibold pt-0.5">
-                          {it.qty || 1} pcs • {(it.weight_kg || 0).toFixed(1)} kg total{' '}
+                          {it.qty || 1} pcs • {(it.weight_kg || 0).toFixed(2)} kg total{' '}
                           <span className="text-slate-400 dark:text-slate-500 font-normal">
-                            ({it.weight_per_piece_kg || 0} kg/pc)
+                            ({(it.weight_per_piece_kg || 0).toFixed(2)} kg/pc)
                           </span>
                           {it.length_cm > 0 &&
-                            ` • ${it.length_cm}×${it.width_cm}×${it.height_cm} cm`}
+                            ` • ${it.length_cm}×${it.width_cm}×${it.height_cm} in`}
                         </div>
                       </div>
 

@@ -105,7 +105,7 @@ export const PackageCard: React.FC<PackageCardProps> = ({
   // Calculations
   const qtyNum = Math.max(1, parseInt(data.qty, 10) || 1);
   const perPieceNum = parseFloat(data.weight_per_piece_kg) || 0;
-  const computedTotalWeight = (qtyNum * perPieceNum).toFixed(1);
+  const computedTotalWeight = (qtyNum * perPieceNum).toFixed(2);
 
   // Determine current active name for display
   const currentDisplayName = data.is_custom_name && data.custom_name.trim()

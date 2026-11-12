@@ -1838,7 +1838,7 @@ export class LocalRepository implements IRepository {
           code: cust?.code || '',
           parcelsCount: stat.parcels,
           piecesCount: stat.pieces,
-          totalWeightKg: Number(stat.weight.toFixed(1)),
+          totalWeightKg: Number(stat.weight.toFixed(2)),
         };
       })
       .sort((a, b) => b.totalWeightKg - a.totalWeightKg)
@@ -1866,7 +1866,7 @@ export class LocalRepository implements IRepository {
           date,
           displayDate,
           pieces: data.pieces,
-          weightKg: Number(data.weight.toFixed(1)),
+          weightKg: Number(data.weight.toFixed(2)),
           lotsCount: data.count,
         };
       })
@@ -1875,23 +1875,23 @@ export class LocalRepository implements IRepository {
     return {
       intakeCount: intakeParcels.length,
       intakePieces,
-      intakeWeightKg: Number(intakeWeightKg.toFixed(1)),
+      intakeWeightKg: Number(intakeWeightKg.toFixed(2)),
       storedParcelsCount,
       storedPieces,
-      storedWeightKg: Number(storedWeightKg.toFixed(1)),
+      storedWeightKg: Number(storedWeightKg.toFixed(2)),
       inTransitParcelsCount,
       inTransitBoxesCount,
-      inTransitWeightKg: Number(inTransitWeightKg.toFixed(1)),
+      inTransitWeightKg: Number(inTransitWeightKg.toFixed(2)),
       activeTrucksCount,
       deliveredParcelsCount,
       deliveredPieces,
-      deliveredWeightKg: Number(deliveredWeightKg.toFixed(1)),
+      deliveredWeightKg: Number(deliveredWeightKg.toFixed(2)),
       toBeReturnedCount,
       toBeReturnedPieces,
-      toBeReturnedWeightKg: Number(toBeReturnedWeightKg.toFixed(1)),
+      toBeReturnedWeightKg: Number(toBeReturnedWeightKg.toFixed(2)),
       returnedCount,
       returnedPieces,
-      returnedWeightKg: Number(returnedWeightKg.toFixed(1)),
+      returnedWeightKg: Number(returnedWeightKg.toFixed(2)),
       dailyTrends,
       topCustomers,
       activeCouriers,
