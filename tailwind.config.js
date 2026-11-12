@@ -8,6 +8,18 @@ export default {
   theme: {
     extend: {
       colors: {
+        cargo: {
+          blue: '#1E75BB',
+          dark: '#0F4C81',
+          mid: '#5BA3DC',
+          yellow: '#FFC72C',
+          'yellow-dark': '#E5A800',
+          light: '#E8F2FB',
+          bg: '#F5FAFE',
+          ink: '#0B2540',
+          muted: '#566B82',
+          line: '#D8E6F3',
+        },
         navy: {
           DEFAULT: '#1E75BB', // Official SK Cargo Blue
           dark: '#165B94',
@@ -21,6 +33,11 @@ export default {
           'orange-light': '#FEF4EC',
           'orange-dark': '#C96213',
         }
+      },
+      fontFamily: {
+        'myanmar-serif': ['"Noto Serif Myanmar"', 'serif'],
+        'space': ['"Space Grotesk"', 'sans-serif'],
+        'jakarta': ['"Plus Jakarta Sans"', 'sans-serif'],
       },
       minHeight: {
         touch: '44px',

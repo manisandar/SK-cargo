@@ -7,6 +7,7 @@ import { DateFilterProvider } from './context/DateFilterContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Layout } from './components/Layout';
 import { LoginScreen } from './screens/LoginScreen';
+import { LandingScreen } from './screens/LandingScreen';
 import { ParcelsScreen } from './screens/ParcelsScreen';
 import { RepackingScreen } from './screens/RepackingScreen';
 import { CouriersScreen } from './screens/CouriersScreen';
@@ -60,6 +61,8 @@ export const App: React.FC = () => {
             <DateFilterProvider>
               <BrowserRouter>
                 <Routes>
+                  <Route path="/landing" element={<LandingScreen />} />
+                  <Route path="/home" element={<LandingScreen />} />
                   <Route path="/login" element={<LoginScreen />} />
 
                   <Route
