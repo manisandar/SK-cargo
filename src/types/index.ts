@@ -189,6 +189,12 @@ export interface DailyVolumeTrend {
   pieces: number;
   weightKg: number;
   lotsCount: number;
+  deliveredPieces?: number;
+  deliveredWeightKg?: number;
+  deliveredLotsCount?: number;
+  returnedPieces?: number;
+  returnedWeightKg?: number;
+  returnedCount?: number;
 }
 
 export interface AdminKPIData {

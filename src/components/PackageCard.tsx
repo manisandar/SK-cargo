@@ -84,9 +84,10 @@ export const PackageCard: React.FC<PackageCardProps> = ({
         photos: [...data.photos, ...newBlobs],
         photoUrls: [...data.photoUrls, ...newUrls],
       });
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Photo compression error:', err);
-      alert(strings.receive.photoCaptureFailed);
+      const msg = err instanceof Error ? err.message : strings.receive.photoCaptureFailed;
+      alert(msg);
     } finally {
       setIsCompressing(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

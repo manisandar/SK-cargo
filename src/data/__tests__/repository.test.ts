@@ -143,6 +143,15 @@ async function runTests() {
   const boxWithParcels = await repo.getBoxById(newBox.id);
   console.assert(boxWithParcels?.total_pieces === 40, `Expected 40 pieces in box, got ${boxWithParcels?.total_pieces}`);
   console.assert(boxWithParcels?.total_weight_kg === 80, `Expected 80 kg in box, got ${boxWithParcels?.total_weight_kg}`);
+
+  // Verify that getParcels({ status: 'stored' }) still includes this parcel because 61 pcs are still stored in warehouse
+  const storedFilterResult = await repo.getParcels({ status: 'stored' });
+  console.assert(storedFilterResult.some((p) => p.id === createdParcel.id), 'Stored filter should include parcel with 61 remaining stored pcs');
+
+  // Verify that getParcels({ status: 'packed' }) includes this parcel because 40 pcs are packed in a box
+  const packedFilterResult = await repo.getParcels({ status: 'packed' });
+  console.assert(packedFilterResult.some((p) => p.id === createdParcel.id), 'Packed filter should include parcel with 40 packed pcs');
+
   console.log('✅ Test 6 Passed: Repacking pieces into big box without parcel splitting functional.');
 
   // Test 7: Couriers (Truck No, Dispatch Date, Big Boxes + Loose Pieces, Status Cascade)
@@ -184,6 +193,14 @@ async function runTests() {
   console.assert(parcelInTransit?.breakdown.in_transit_qty === 60, `Expected 60 in transit, got ${parcelInTransit?.breakdown.in_transit_qty}`);
   console.assert(parcelInTransit?.status === 'in_transit', 'Primary status should be in_transit');
 
+  // Verify that getParcels({ status: 'stored' }) STILL includes this parcel because 41 pcs are still stored in warehouse
+  const storedAfterDispatch = await repo.getParcels({ status: 'stored' });
+  console.assert(storedAfterDispatch.some((p) => p.id === createdParcel.id), 'Stored filter should still include parcel with 41 remaining stored pcs');
+
+  // Verify that getParcels({ status: 'in_transit' }) includes this parcel because 60 pcs are on truck
+  const transitFilterResult = await repo.getParcels({ status: 'in_transit' });
+  console.assert(transitFilterResult.some((p) => p.id === createdParcel.id), 'In-transit filter should include parcel with pieces on truck');
+
   // Deliver courier
   await repo.updateCourierStatus(courier.id, 'delivered', logged.id, 'Truck arrived');
   const boxAfterDeliver = await repo.getBoxById(newBox.id);
@@ -192,6 +209,21 @@ async function runTests() {
   const parcelDelivered = await repo.getParcelById(createdParcel.id);
   console.assert(parcelDelivered?.breakdown.delivered_qty === 60, `Expected 60 delivered, got ${parcelDelivered?.breakdown.delivered_qty}`);
   console.assert(parcelDelivered?.breakdown.stored_qty === 41, `Expected 41 stored, got ${parcelDelivered?.breakdown.stored_qty}`);
+
+  // Test reverting from delivered back to in_transit (to fix mistakes)
+  await repo.updateCourierStatus(courier.id, 'in_transit', logged.id, 'Reverting delivery mistake');
+  const boxAfterRevert = await repo.getBoxById(newBox.id);
+  console.assert(boxAfterRevert?.status === 'in_transit', 'Box should revert to in_transit');
+
+  const parcelReverted = await repo.getParcelById(createdParcel.id);
+  console.assert(parcelReverted?.breakdown.delivered_qty === 0, `Expected 0 delivered after revert, got ${parcelReverted?.breakdown.delivered_qty}`);
+  console.assert(parcelReverted?.breakdown.in_transit_qty === 60, `Expected 60 in transit after revert, got ${parcelReverted?.breakdown.in_transit_qty}`);
+  console.assert(parcelReverted?.status === 'in_transit', 'Parcel status should revert to in_transit');
+
+  // Re-deliver courier
+  await repo.updateCourierStatus(courier.id, 'delivered', logged.id, 'Truck confirmed arrived');
+  const parcelReDelivered = await repo.getParcelById(createdParcel.id);
+  console.assert(parcelReDelivered?.breakdown.delivered_qty === 60, `Expected 60 delivered after re-delivery, got ${parcelReDelivered?.breakdown.delivered_qty}`);
 
   console.log('✅ Test 7 Passed: Courier dispatch run with boxes, loose pieces, and status cascades functional.');
 

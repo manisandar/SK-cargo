@@ -101,7 +101,8 @@ export const CouriersScreen: React.FC = () => {
       await loadCouriers();
     } catch (err: unknown) {
       console.error('Failed to upload truck photo:', err);
-      alert('Failed to upload photo. Please retry.');
+      const msg = err instanceof Error ? err.message : 'Failed to upload photo. Please retry.';
+      alert(msg);
     } finally {
       setIsUploadingPhoto(false);
       if (courierFileInputRef.current) courierFileInputRef.current.value = '';
@@ -351,6 +352,18 @@ export const CouriersScreen: React.FC = () => {
   // Status transitions
   const handleUpdateStatus = async (toStatus: CourierStatus) => {
     if (!activeCourier) return;
+
+    if (toStatus === 'delivered') {
+      const confirmMsg = `Mark truck ${activeCourier.truck_no} (${activeCourier.courier_code}) as DELIVERED?\n\nThis will mark all ${activeCourier.total_pieces_count || 0} cargo pieces on this truck as Delivered.`;
+      if (!window.confirm(confirmMsg)) return;
+    } else if (toStatus === 'in_transit' && activeCourier.status === 'delivered') {
+      const confirmMsg = `Revert truck ${activeCourier.truck_no} back to IN TRANSIT?\n\nThis will restore all cargo contents back to In Transit status.`;
+      if (!window.confirm(confirmMsg)) return;
+    } else if (toStatus === 'draft') {
+      const confirmMsg = `Revert truck ${activeCourier.truck_no} back to LOADING (Draft)?\n\nThis will allow adding or removing cargo again.`;
+      if (!window.confirm(confirmMsg)) return;
+    }
+
     const userId = user?.id || crypto.randomUUID();
     try {
       await repository.updateCourierStatus(activeCourier.id, toStatus, userId);
@@ -966,6 +979,7 @@ export const CouriersScreen: React.FC = () => {
                         ref={courierFileInputRef}
                         type="file"
                         accept="image/*"
+                        capture="environment"
                         multiple
                         className="hidden"
                         onChange={handleUploadCourierPhoto}
@@ -1073,15 +1087,46 @@ export const CouriersScreen: React.FC = () => {
                     </>
                   )}
 
-                  {/* Revert to Loading: ONLY available when in_transit, NEVER when delivered! */}
                   {activeCourier.status === 'in_transit' && (
-                    <button
-                      onClick={() => handleUpdateStatus('draft')}
-                      className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors min-h-[44px] flex items-center gap-1"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>{strings.couriers.revertToDraftButton}</span>
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateStatus('delivered')}
+                        className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 min-h-[44px] transition-all"
+                        title="Mark truck run as delivered and update all cargo contents to Delivered"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>{strings.couriers.markDeliveredButton}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateStatus('draft')}
+                        className="px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors min-h-[44px] flex items-center gap-1.5 shrink-0"
+                        title="Revert back to loading stage"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>{strings.couriers.revertToDraftButton}</span>
+                      </button>
+                    </>
+                  )}
+
+                  {activeCourier.status === 'delivered' && (
+                    <div className="flex items-center justify-between w-full gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-3 py-2.5 rounded-xl">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>{strings.couriers.deliveredCompletedBadge}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateStatus('in_transit')}
+                        className="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-[#ED7D24] dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 rounded-xl text-xs font-bold transition-colors min-h-[44px] flex items-center gap-1.5"
+                        title="Revert back to in transit if marked delivered by mistake"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>{strings.couriers.revertToTransitButton}</span>
+                      </button>
+                    </div>
                   )}
                 </div>
 

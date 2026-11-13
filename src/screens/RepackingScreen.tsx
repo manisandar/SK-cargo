@@ -6,7 +6,6 @@ import {
   Trash2,
   X,
   Loader2,
-  CheckCircle2,
   Layers,
   Truck,
   ArrowLeft,
@@ -74,7 +73,6 @@ export const RepackingScreen: React.FC = () => {
   const [loadingStoredParcels, setLoadingStoredParcels] = useState(false);
   const [packQtyMap, setPackQtyMap] = useState<Record<string, number>>({});
   const [isAddingToBox, setIsAddingToBox] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Repacked Box Photos upload
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -113,7 +111,8 @@ export const RepackingScreen: React.FC = () => {
       await loadBoxes();
     } catch (err: unknown) {
       console.error('Failed to upload box photo:', err);
-      alert('Failed to upload photo. Please retry.');
+      const msg = err instanceof Error ? err.message : 'Failed to upload photo. Please retry.';
+      alert(msg);
     } finally {
       setIsUploadingPhoto(false);
       if (boxFileInputRef.current) boxFileInputRef.current.value = '';
@@ -236,9 +235,6 @@ export const RepackingScreen: React.FC = () => {
     try {
       const userId = user?.id || crypto.randomUUID();
       await repository.addParcelItemPiecesToBox(activeBox.id, parcel.id, item.id, qtyToTake, userId);
-
-      setSuccessMessage(strings.repacking.packSuccess(`${parcel.parcel_code} (${item.name_on_parcel})`, qtyToTake));
-      setTimeout(() => setSuccessMessage(null), 3000);
 
       // Refresh box and switch back to details view
       await loadBoxDetails(activeBox.id);
@@ -392,13 +388,6 @@ export const RepackingScreen: React.FC = () => {
           <span>{strings.repacking.createNewBoxButton}</span>
         </button>
       </div>
-
-      {successMessage && (
-        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-xl text-xs font-bold flex items-center gap-2 animate-in fade-in">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{successMessage}</span>
-        </div>
-      )}
 
       {/* Sticky Date Navigation Bar - Fixed at top when scrolling */}
       <div className="sticky top-0 z-20 bg-[#FAF9F6]/95 dark:bg-slate-950/95 backdrop-blur-xs py-1 -mx-3 px-3 sm:-mx-5 sm:px-5 lg:-mx-8 lg:px-8">
@@ -699,6 +688,7 @@ export const RepackingScreen: React.FC = () => {
                           ref={boxFileInputRef}
                           type="file"
                           accept="image/*"
+                          capture="environment"
                           multiple
                           className="hidden"
                           onChange={handleUploadBoxPhoto}

@@ -560,10 +560,25 @@ export class LocalRepository implements IRepository {
       enriched = enriched.filter((p) => {
         if (s === 'to_be_returned') return p.status === 'to_be_returned';
         if (s === 'returned') return p.status === 'returned';
-        if (s === 'stored') return p.status === 'stored' && p.breakdown.stored_qty > 0;
-        if (s === 'packed') return p.status === 'packed' && p.breakdown.packed_qty > 0;
-        if (s === 'in_transit') return p.status === 'in_transit' && p.breakdown.in_transit_qty > 0;
-        if (s === 'delivered') return p.status === 'delivered';
+        if (s === 'stored') {
+          return (
+            ((p.breakdown?.stored_qty ?? 0) > 0 || p.status === 'stored') &&
+            p.status !== 'to_be_returned' &&
+            p.status !== 'returned'
+          );
+        }
+        if (s === 'packed') {
+          return (p.breakdown?.packed_qty ?? 0) > 0 || p.status === 'packed';
+        }
+        if (s === 'in_transit') {
+          return (p.breakdown?.in_transit_qty ?? 0) > 0 || p.status === 'in_transit';
+        }
+        if (s === 'delivered') {
+          return (
+            p.status === 'delivered' ||
+            (p.breakdown?.delivered_qty ?? 0) > 0
+          );
+        }
         return p.status === s;
       });
     }
@@ -1589,6 +1604,36 @@ export class LocalRepository implements IRepository {
       });
     });
 
+    // Cascade & synchronize status to all affected parcels in db.parcels
+    const loadedBoxes = await db.boxes.where('courier_id').equals(courierId).toArray();
+    const affectedParcelIds = new Set<string>();
+    for (const b of loadedBoxes) {
+      const bItems = await db.box_items.where('box_id').equals(b.id).toArray();
+      for (const bi of bItems) affectedParcelIds.add(bi.parcel_id);
+    }
+    const looseItems = await db.courier_loose_items.where('courier_id').equals(courierId).toArray();
+    for (const li of looseItems) affectedParcelIds.add(li.parcel_id);
+
+    for (const pid of affectedParcelIds) {
+      const rawParcel = await db.parcels.get(pid);
+      if (rawParcel && rawParcel.status !== 'to_be_returned' && rawParcel.status !== 'returned') {
+        const enriched = await this.enrichParcel(rawParcel);
+        if (rawParcel.status !== enriched.status) {
+          await db.parcels.update(pid, { status: enriched.status });
+          await db.status_history.add({
+            id: crypto.randomUUID(),
+            entity_type: 'parcel',
+            entity_id: pid,
+            from_status: rawParcel.status,
+            to_status: enriched.status,
+            note: `Truck ${courier.truck_no} (${courier.courier_code}) status updated to ${toStatus}`,
+            changed_by: userId,
+            changed_at: now,
+          });
+        }
+      }
+    }
+
     const updated = await db.couriers.get(courierId);
     return this.enrichCourier(updated!);
   }
@@ -1733,6 +1778,7 @@ export class LocalRepository implements IRepository {
       intakeWeightKg += p.total_weight_kg;
     }
 
+    // 1. Operational Real-time Inventory: Warehouse Stock & In-Transit (ALWAYS "Right now")
     let storedParcelsCount = 0;
     let storedPieces = 0;
     let storedWeightKg = 0;
@@ -1740,30 +1786,11 @@ export class LocalRepository implements IRepository {
     let inTransitParcelsCount = 0;
     let inTransitWeightKg = 0;
 
-    let deliveredParcelsCount = 0;
-    let deliveredPieces = 0;
-    let deliveredWeightKg = 0;
-
-    let toBeReturnedCount = 0;
-    let toBeReturnedPieces = 0;
-    let toBeReturnedWeightKg = 0;
-    let returnedCount = 0;
-    let returnedPieces = 0;
-    let returnedWeightKg = 0;
-
     const customerStats = new Map<string, { parcels: number; pieces: number; weight: number }>();
 
     for (const p of allParcels) {
-      if (p.status === 'to_be_returned') {
-        toBeReturnedCount++;
-        toBeReturnedPieces += p.total_qty;
-        toBeReturnedWeightKg += p.total_weight_kg;
-      } else if (p.status === 'returned') {
-        returnedCount++;
-        returnedPieces += p.total_qty;
-        returnedWeightKg += p.total_weight_kg;
-      } else {
-        // Warehouse Stock: Count any parcel that still has pieces stored in warehouse
+      if (p.status !== 'to_be_returned' && p.status !== 'returned') {
+        // Warehouse Stock: Count any parcel that still has pieces stored in warehouse right now
         if (p.breakdown.stored_qty > 0) {
           storedParcelsCount++;
           storedPieces += p.breakdown.stored_qty;
@@ -1780,7 +1807,7 @@ export class LocalRepository implements IRepository {
           storedWeightKg += weight;
         }
 
-        // In Transit: Count pieces currently in transit
+        // In Transit: Count pieces currently on a truck in transit right now
         if (p.breakdown.in_transit_qty > 0 || p.status === 'in_transit') {
           inTransitParcelsCount++;
           let weight = 0;
@@ -1796,7 +1823,79 @@ export class LocalRepository implements IRepository {
           }
           inTransitWeightKg += weight;
         }
+      }
 
+      if (p.customer_id) {
+        const existing = customerStats.get(p.customer_id) || { parcels: 0, pieces: 0, weight: 0 };
+        existing.parcels += 1;
+        existing.pieces += p.total_qty;
+        existing.weight += p.total_weight_kg;
+        customerStats.set(p.customer_id, existing);
+      }
+    }
+
+    // 2. Performance Outcomes: Delivered & Returned linked with selected period/date
+    let deliveredParcelsCount = 0;
+    let deliveredPieces = 0;
+    let deliveredWeightKg = 0;
+
+    let toBeReturnedCount = 0;
+    let toBeReturnedPieces = 0;
+    let toBeReturnedWeightKg = 0;
+    let returnedCount = 0;
+    let returnedPieces = 0;
+    let returnedWeightKg = 0;
+
+    // Build daily intake, delivered & returned volume trends for the graph
+    const dailyMap = new Map<
+      string,
+      {
+        pieces: number;
+        weight: number;
+        count: number;
+        deliveredPieces: number;
+        deliveredWeightKg: number;
+        deliveredLotsCount: number;
+        returnedPieces: number;
+        returnedWeightKg: number;
+        returnedCount: number;
+      }
+    >();
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    for (const p of intakeParcels) {
+      const d = p.received_at ? p.received_at.split('T')[0] : getTodayIsoDate();
+      const prev = dailyMap.get(d) || {
+        pieces: 0,
+        weight: 0,
+        count: 0,
+        deliveredPieces: 0,
+        deliveredWeightKg: 0,
+        deliveredLotsCount: 0,
+        returnedPieces: 0,
+        returnedWeightKg: 0,
+        returnedCount: 0,
+      };
+
+      prev.pieces += p.total_qty || 0;
+      prev.weight += p.total_weight_kg || 0;
+      prev.count += 1;
+
+      if (p.status === 'to_be_returned') {
+        toBeReturnedCount++;
+        toBeReturnedPieces += p.total_qty;
+        toBeReturnedWeightKg += p.total_weight_kg;
+        prev.returnedPieces += p.total_qty;
+        prev.returnedWeightKg += p.total_weight_kg;
+        prev.returnedCount += 1;
+      } else if (p.status === 'returned') {
+        returnedCount++;
+        returnedPieces += p.total_qty;
+        returnedWeightKg += p.total_weight_kg;
+        prev.returnedPieces += p.total_qty;
+        prev.returnedWeightKg += p.total_weight_kg;
+        prev.returnedCount += 1;
+      } else {
         // Delivered: Count pieces delivered
         if (p.breakdown.delivered_qty > 0 || p.status === 'delivered') {
           deliveredParcelsCount++;
@@ -1813,16 +1912,14 @@ export class LocalRepository implements IRepository {
             weight = p.total_weight_kg * (dQty / p.total_qty);
           }
           deliveredWeightKg += weight;
+
+          prev.deliveredPieces += dQty;
+          prev.deliveredWeightKg += weight;
+          prev.deliveredLotsCount += 1;
         }
       }
 
-      if (p.customer_id) {
-        const existing = customerStats.get(p.customer_id) || { parcels: 0, pieces: 0, weight: 0 };
-        existing.parcels += 1;
-        existing.pieces += p.total_qty;
-        existing.weight += p.total_weight_kg;
-        customerStats.set(p.customer_id, existing);
-      }
+      dailyMap.set(d, prev);
     }
 
     const inTransitBoxesCount = allBoxes.filter((b) => b.status === 'in_transit').length;
@@ -1844,19 +1941,6 @@ export class LocalRepository implements IRepository {
       .sort((a, b) => b.totalWeightKg - a.totalWeightKg)
       .slice(0, 20);
 
-    // Build daily intake & volume trends for the graph
-    const dailyMap = new Map<string, { pieces: number; weight: number; count: number }>();
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    for (const p of intakeParcels) {
-      const d = p.received_at ? p.received_at.split('T')[0] : getTodayIsoDate();
-      const prev = dailyMap.get(d) || { pieces: 0, weight: 0, count: 0 };
-      prev.pieces += p.total_qty || 0;
-      prev.weight += p.total_weight_kg || 0;
-      prev.count += 1;
-      dailyMap.set(d, prev);
-    }
-
     // Check if dates in trends span multiple years
     const uniqueYears = new Set(Array.from(dailyMap.keys()).map((d) => d.split('-')[0]));
     const hasMultipleYears = uniqueYears.size > 1;
@@ -1876,6 +1960,12 @@ export class LocalRepository implements IRepository {
           pieces: data.pieces,
           weightKg: Number(data.weight.toFixed(2)),
           lotsCount: data.count,
+          deliveredPieces: data.deliveredPieces,
+          deliveredWeightKg: Number(data.deliveredWeightKg.toFixed(2)),
+          deliveredLotsCount: data.deliveredLotsCount,
+          returnedPieces: data.returnedPieces,
+          returnedWeightKg: Number(data.returnedWeightKg.toFixed(2)),
+          returnedCount: data.returnedCount,
         };
       })
       .sort((a, b) => a.date.localeCompare(b.date));

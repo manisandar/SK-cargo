@@ -580,7 +580,7 @@ export const LandingScreen: React.FC = () => {
             <div
               className="landing-truck"
               style={{
-                transform: `translate3d(${-80 + journeyProgress * (windowWidth + 80)}px, ${Math.sin(journeyProgress * 120) * 2.5}px, 0)`
+                transform: `translate3d(${-50 + journeyProgress * (windowWidth + 50)}px, ${Math.sin(journeyProgress * 100) * 1.5}px, 0)`
               }}
             >
               <svg viewBox="0 0 236 112">

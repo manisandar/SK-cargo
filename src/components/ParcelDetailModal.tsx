@@ -46,6 +46,7 @@ export const ParcelDetailModal: React.FC<ParcelDetailModalProps> = ({
   const [newPhotos, setNewPhotos] = useState<Blob[]>([]);
   const [newPhotoUrls, setNewPhotoUrls] = useState<string[]>([]);
   const [isCompressingPhoto, setIsCompressingPhoto] = useState(false);
+  const [isCompressingNewItemPhoto, setIsCompressingNewItemPhoto] = useState(false);
 
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -269,6 +270,7 @@ export const ParcelDetailModal: React.FC<ParcelDetailModalProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
     try {
+      setIsCompressingNewItemPhoto(true);
       const addedBlobs: Blob[] = [];
       const addedUrls: string[] = [];
       for (let i = 0; i < files.length; i++) {
@@ -278,10 +280,12 @@ export const ParcelDetailModal: React.FC<ParcelDetailModalProps> = ({
       }
       setNewItemPhotos((prev) => [...prev, ...addedBlobs]);
       setNewItemPhotoUrls((prev) => [...prev, ...addedUrls]);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to compress photo:', err);
-      setEditError(strings.receive.photoCaptureFailed);
+      const msg = err instanceof Error ? err.message : strings.receive.photoCaptureFailed;
+      setEditError(msg);
     } finally {
+      setIsCompressingNewItemPhoto(false);
       if (newItemFileInputRef.current) newItemFileInputRef.current.value = '';
     }
   };
@@ -363,7 +367,14 @@ export const ParcelDetailModal: React.FC<ParcelDetailModalProps> = ({
     }
     if (item.packed_qty > 0) {
       const boxLoc = (item.locations || []).find((l) => l.type === 'box');
-      alert(`⚠️ Cannot edit: Package is packed inside Big Box (${boxLoc?.label || 'repacked'}). Please unpack from Big Box first to edit.`);
+      const courierLoc = (item.locations || []).find((l) => l.type === 'courier');
+      if (boxLoc) {
+        alert(`⚠️ Cannot edit: Package is packed inside Big Box (${boxLoc.label}). Please unpack from Big Box first to edit.`);
+      } else if (courierLoc) {
+        alert(`⚠️ Cannot edit: Package is loaded on courier (${courierLoc.label}). Please unload from truck first to edit.`);
+      } else {
+        alert('⚠️ Cannot edit: Package is already packed/loaded. Please remove from packing/loading first to edit.');
+      }
       return;
     }
 
@@ -406,9 +417,10 @@ export const ParcelDetailModal: React.FC<ParcelDetailModalProps> = ({
 
       setNewPhotos((prev) => [...prev, ...addedBlobs]);
       setNewPhotoUrls((prev) => [...prev, ...addedUrls]);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to compress photo:', err);
-      setEditError(strings.receive.photoCaptureFailed);
+      const msg = err instanceof Error ? err.message : strings.receive.photoCaptureFailed;
+      setEditError(msg);
     } finally {
       setIsCompressingPhoto(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -832,9 +844,14 @@ export const ParcelDetailModal: React.FC<ParcelDetailModalProps> = ({
                       <button
                         type="button"
                         onClick={() => newItemFileInputRef.current?.click()}
+                        disabled={isCompressingNewItemPhoto}
                         className="px-3 py-2 rounded-lg border border-dashed border-[#1E75BB] dark:border-[#2D8AD1] bg-white dark:bg-slate-900 hover:bg-blue-50 dark:hover:bg-slate-800 text-[#1E75BB] dark:text-[#2D8AD1] font-bold text-xs flex items-center gap-1 min-h-[36px]"
                       >
-                        <Plus className="w-3.5 h-3.5" />
+                        {isCompressingNewItemPhoto ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Plus className="w-3.5 h-3.5" />
+                        )}
                         <span>{strings.parcelsList.addMorePhotos}</span>
                       </button>
 
@@ -1121,7 +1138,7 @@ export const ParcelDetailModal: React.FC<ParcelDetailModalProps> = ({
                       {/* Edit Button or Locked Indicator */}
                       {isLocked ? (
                         <div
-                          title="Locked: Item is packed in big box, in transit, or delivered"
+                          title="Locked: Item is packed in big box, loaded on truck, in transit, or delivered"
                           className="px-2.5 py-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 rounded-lg text-xs font-bold flex items-center gap-1 shrink-0 transition-colors"
                         >
                           <Lock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
@@ -1151,7 +1168,7 @@ export const ParcelDetailModal: React.FC<ParcelDetailModalProps> = ({
                       {itemLocations.map((loc, lIdx) => {
                         let colorClasses = 'bg-amber-50 text-[#ED7D24] border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/50';
                         let dotColor = 'bg-[#ED7D24] dark:bg-amber-400';
-                        let statusText = 'Repacked';
+                        let statusText = loc.type === 'courier' ? 'Loading' : 'Repacked';
 
                         if (loc.status === 'in_transit') {
                           colorClasses = 'bg-blue-50 text-[#1E75BB] border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/50';

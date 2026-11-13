@@ -54,7 +54,8 @@ export const ParcelsScreen: React.FC = () => {
   // Enhanced search & date filter:
   // When search query is entered, search across ALL dates!
   // When search query is empty, filter by selectedDate.
-  const filteredParcels = useMemo(() => {
+  // Base list of parcels respecting search query and date selection before status filtering
+  const baseParcelsForTabs = useMemo(() => {
     let result = parcels;
 
     if (searchQuery.trim()) {
@@ -72,13 +73,19 @@ export const ParcelsScreen: React.FC = () => {
 
         // Status name matching for mobile & general text search
         let statusMatch = false;
-        if (q === 'stored' && (p.status === 'stored' || p.breakdown.stored_qty > 0)) {
+        if (q === 'stored' && ((p.breakdown?.stored_qty ?? 0) > 0 || p.status === 'stored')) {
           statusMatch = true;
-        } else if (q === 'packed' && (p.status === 'packed' || p.breakdown.packed_qty > 0)) {
+        } else if (q === 'packed' && ((p.breakdown?.packed_qty ?? 0) > 0 || p.status === 'packed')) {
           statusMatch = true;
-        } else if ((q === 'transit' || q === 'in transit') && (p.status === 'in_transit' || p.breakdown.in_transit_qty > 0)) {
+        } else if (
+          (q === 'transit' || q === 'in transit') &&
+          ((p.breakdown?.in_transit_qty ?? 0) > 0 || p.status === 'in_transit')
+        ) {
           statusMatch = true;
-        } else if (q === 'delivered' && p.status === 'delivered') {
+        } else if (
+          q === 'delivered' &&
+          (p.status === 'delivered' || (p.breakdown?.delivered_qty ?? 0) > 0)
+        ) {
           statusMatch = true;
         } else if (
           (q === 'return' || q === 'returned' || q === 'to return' || q === 'to be returned') &&
@@ -98,20 +105,63 @@ export const ParcelsScreen: React.FC = () => {
       });
     }
 
-    if (statusFilter !== 'all') {
-      result = result.filter((p) => {
-        if (statusFilter === 'stored') return p.status === 'stored' && p.breakdown.stored_qty > 0;
-        if (statusFilter === 'packed') return p.status === 'packed' && p.breakdown.packed_qty > 0;
-        if (statusFilter === 'in_transit') return p.status === 'in_transit' && p.breakdown.in_transit_qty > 0;
-        if (statusFilter === 'delivered') return p.status === 'delivered';
-        if (statusFilter === 'to_be_returned') return p.status === 'to_be_returned';
-        if (statusFilter === 'returned') return p.status === 'returned';
-        return p.status === statusFilter;
-      });
-    }
-
     return result;
-  }, [parcels, selectedDate, searchQuery, statusFilter]);
+  }, [parcels, selectedDate, searchQuery]);
+
+  // Tab counts for website pill buttons
+  const tabCounts = useMemo(() => {
+    return {
+      all: baseParcelsForTabs.length,
+      stored: baseParcelsForTabs.filter(
+        (p) =>
+          ((p.breakdown?.stored_qty ?? 0) > 0 || p.status === 'stored') &&
+          p.status !== 'to_be_returned' &&
+          p.status !== 'returned'
+      ).length,
+      packed: baseParcelsForTabs.filter(
+        (p) => (p.breakdown?.packed_qty ?? 0) > 0 || p.status === 'packed'
+      ).length,
+      in_transit: baseParcelsForTabs.filter(
+        (p) => (p.breakdown?.in_transit_qty ?? 0) > 0 || p.status === 'in_transit'
+      ).length,
+      delivered: baseParcelsForTabs.filter(
+        (p) =>
+          p.status === 'delivered' ||
+          (p.breakdown?.delivered_qty ?? 0) > 0
+      ).length,
+      to_be_returned: baseParcelsForTabs.filter((p) => p.status === 'to_be_returned').length,
+      returned: baseParcelsForTabs.filter((p) => p.status === 'returned').length,
+    };
+  }, [baseParcelsForTabs]);
+
+  const filteredParcels = useMemo(() => {
+    if (statusFilter === 'all') return baseParcelsForTabs;
+
+    return baseParcelsForTabs.filter((p) => {
+      if (statusFilter === 'stored') {
+        return (
+          ((p.breakdown?.stored_qty ?? 0) > 0 || p.status === 'stored') &&
+          p.status !== 'to_be_returned' &&
+          p.status !== 'returned'
+        );
+      }
+      if (statusFilter === 'packed') {
+        return (p.breakdown?.packed_qty ?? 0) > 0 || p.status === 'packed';
+      }
+      if (statusFilter === 'in_transit') {
+        return (p.breakdown?.in_transit_qty ?? 0) > 0 || p.status === 'in_transit';
+      }
+      if (statusFilter === 'delivered') {
+        return (
+          p.status === 'delivered' ||
+          (p.breakdown?.delivered_qty ?? 0) > 0
+        );
+      }
+      if (statusFilter === 'to_be_returned') return p.status === 'to_be_returned';
+      if (statusFilter === 'returned') return p.status === 'returned';
+      return p.status === statusFilter;
+    });
+  }, [baseParcelsForTabs, statusFilter]);
 
   // Aggregate totals
   const totalPieces = useMemo(() => {
@@ -266,17 +316,27 @@ export const ParcelsScreen: React.FC = () => {
             { id: 'returned', label: strings.parcelsList.filterReturned },
           ].map((tab) => {
             const active = statusFilter === tab.id;
+            const count = tabCounts[tab.id as keyof typeof tabCounts] ?? 0;
             return (
               <button
                 key={tab.id}
                 onClick={() => setStatusFilter(tab.id)}
-                className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all text-xs ${
+                className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all text-xs flex items-center gap-1.5 ${
                   active
                     ? 'bg-[#1E75BB] text-white shadow-xs'
                     : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-slate-300'
                 }`}
               >
-                {tab.label}
+                <span>{tab.label}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    active
+                      ? 'bg-white/20 text-white'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  {count}
+                </span>
               </button>
             );
           })}
@@ -339,7 +399,7 @@ export const ParcelsScreen: React.FC = () => {
                       <h3 className="text-base font-black text-slate-900 dark:text-white truncate group-hover:text-[#1E75BB] dark:group-hover:text-[#2D8AD1] transition-colors">
                         {p.customer?.name || strings.parcelsList.customerLabel}
                       </h3>
-                      <div className="flex items-center gap-1.5 mt-0.5">
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                         {p.customer?.code && (
                           <span className="text-[10px] bg-blue-50 dark:bg-blue-950/40 text-[#1E75BB] dark:text-[#2D8AD1] font-mono font-bold px-1.5 py-0.5 rounded border border-blue-100 dark:border-blue-900/50">
                             {p.customer.code}
@@ -348,6 +408,7 @@ export const ParcelsScreen: React.FC = () => {
                         <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-mono font-semibold px-1.5 py-0.5 rounded">
                           {p.parcel_code}
                         </span>
+
                         {p.status === 'to_be_returned' && (
                           <span className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
                             <RotateCcw className="w-2.5 h-2.5 text-amber-600" />
@@ -359,6 +420,36 @@ export const ParcelsScreen: React.FC = () => {
                             <CheckCircle2 className="w-2.5 h-2.5 text-purple-600" />
                             <span>Returned</span>
                           </span>
+                        )}
+
+                        {/* Status Badges for Stored, Partial, Packed, In Transit, Delivered */}
+                        {p.status !== 'to_be_returned' && p.status !== 'returned' && (
+                          <>
+                            {p.breakdown.delivered_qty === p.total_qty && p.total_qty > 0 ? (
+                              <span className="text-[10px] bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
+                                <CheckCircle2 className="w-2.5 h-2.5 text-teal-600" />
+                                <span>Delivered</span>
+                              </span>
+                            ) : p.breakdown.stored_qty > 0 &&
+                              (p.breakdown.packed_qty > 0 || p.breakdown.in_transit_qty > 0 || p.breakdown.delivered_qty > 0) ? (
+                              <span className="text-[10px] bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                <span>Partial ({p.breakdown.stored_qty} stored)</span>
+                              </span>
+                            ) : p.breakdown.stored_qty === p.total_qty ? (
+                              <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-bold px-1.5 py-0.5 rounded">
+                                Stored
+                              </span>
+                            ) : p.breakdown.in_transit_qty > 0 ? (
+                              <span className="text-[10px] bg-blue-50 dark:bg-blue-950/40 text-[#1E75BB] dark:text-[#2D8AD1] border border-blue-200 dark:border-blue-800 font-bold px-1.5 py-0.5 rounded">
+                                In Transit
+                              </span>
+                            ) : p.breakdown.packed_qty > 0 ? (
+                              <span className="text-[10px] bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-bold px-1.5 py-0.5 rounded">
+                                Packed
+                              </span>
+                            ) : null}
+                          </>
                         )}
                       </div>
                     </div>

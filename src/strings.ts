@@ -247,6 +247,8 @@ export const strings = {
     dispatchButton: 'Dispatch Truck (In Transit)',
     markDeliveredButton: 'Mark Run Delivered',
     revertToDraftButton: 'Revert to Loading',
+    revertToTransitButton: 'Revert to In Transit',
+    deliveredCompletedBadge: 'Delivered & Completed',
     statusCascadeNote: 'Dispatching or delivering a courier automatically updates all loaded boxes and parcels.',
     removeCargo: 'Remove',
     totalCargoPieces: (pcs: number) => `${pcs} pcs`,

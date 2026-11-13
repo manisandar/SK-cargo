@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "npx tsx src/data/__tests__/repository.test.ts"
+    "test": "npx tsx src/utils/__tests__/imageCompression.test.ts && npx tsx src/data/__tests__/repository.test.ts"
   },
   "dependencies": {
     "browser-image-compression": "^2.0.2",

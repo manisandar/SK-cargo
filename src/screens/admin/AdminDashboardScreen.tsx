@@ -17,6 +17,7 @@ import {
   ChevronDown,
   Download,
   Calendar,
+  X,
 } from 'lucide-react';
 
 export const AdminDashboardScreen: React.FC = () => {
@@ -104,22 +105,83 @@ export const AdminDashboardScreen: React.FC = () => {
       .slice(0, 5);
   }, [kpis?.topCustomers, customerSort]);
 
-  // Default selected date to latest trend item
-  useEffect(() => {
-    if (kpis?.dailyTrends && kpis.dailyTrends.length > 0) {
-      setSelectedDate(kpis.dailyTrends[kpis.dailyTrends.length - 1].date);
-    } else {
-      setSelectedDate(null);
-    }
-  }, [kpis?.dailyTrends]);
+  // Trend item matching selectedDate (when user chooses a date from the intake graph)
+  const selectedTrendItem = useMemo(() => {
+    if (!selectedDate || !kpis?.dailyTrends) return null;
+    return kpis.dailyTrends.find((t) => t.date === selectedDate) || null;
+  }, [selectedDate, kpis?.dailyTrends]);
 
   const activeTrendItem = useMemo(() => {
     if (!kpis?.dailyTrends || kpis.dailyTrends.length === 0) return null;
-    return (
-      kpis.dailyTrends.find((t) => t.date === selectedDate) ||
-      kpis.dailyTrends[kpis.dailyTrends.length - 1]
-    );
-  }, [kpis?.dailyTrends, selectedDate]);
+    if (selectedTrendItem) return selectedTrendItem;
+    return kpis.dailyTrends[kpis.dailyTrends.length - 1];
+  }, [kpis?.dailyTrends, selectedTrendItem]);
+
+  // Delivered & Returned dynamic metrics linked to graph selection or active period
+  const {
+    displayDeliveredPieces,
+    displayDeliveredWeightKg,
+    displayDeliveredLotsCount,
+    displayReturnedPieces,
+    displayReturnedWeightKg,
+    displayReturnedCount,
+    deliveredDateBadge,
+    returnedDateBadge,
+  } = useMemo(() => {
+    const today = getTodayIsoDate();
+
+    // 1. If user chose a specific date from the period intake graph
+    if (selectedTrendItem) {
+      const isToday = selectedTrendItem.date === today;
+      const dateTag = isToday ? 'Today' : selectedTrendItem.displayDate;
+      return {
+        displayDeliveredPieces: selectedTrendItem.deliveredPieces ?? 0,
+        displayDeliveredWeightKg: selectedTrendItem.deliveredWeightKg ?? 0,
+        displayDeliveredLotsCount: selectedTrendItem.deliveredLotsCount ?? 0,
+        displayReturnedPieces: selectedTrendItem.returnedPieces ?? 0,
+        displayReturnedWeightKg: selectedTrendItem.returnedWeightKg ?? 0,
+        displayReturnedCount: selectedTrendItem.returnedCount ?? 0,
+        deliveredDateBadge: dateTag,
+        returnedDateBadge: dateTag,
+      };
+    }
+
+    // 2. Otherwise follow the period selection
+    let periodTag = 'Today';
+    switch (period) {
+      case 'today':
+        periodTag = 'Today';
+        break;
+      case 'week':
+        periodTag = 'This Week';
+        break;
+      case 'month':
+        periodTag = 'This Month';
+        break;
+      case 'all':
+        periodTag = 'All Time';
+        break;
+      case 'custom':
+        periodTag =
+          customFrom === customTo
+            ? customFrom === today
+              ? 'Today'
+              : customFrom
+            : `${customFrom} - ${customTo}`;
+        break;
+    }
+
+    return {
+      displayDeliveredPieces: kpis?.deliveredPieces ?? 0,
+      displayDeliveredWeightKg: kpis?.deliveredWeightKg ?? 0,
+      displayDeliveredLotsCount: kpis?.deliveredParcelsCount ?? 0,
+      displayReturnedPieces: kpis?.returnedPieces ?? 0,
+      displayReturnedWeightKg: kpis?.returnedWeightKg ?? 0,
+      displayReturnedCount: (kpis?.returnedCount ?? 0) + (kpis?.toBeReturnedCount ?? 0),
+      deliveredDateBadge: periodTag,
+      returnedDateBadge: periodTag,
+    };
+  }, [selectedTrendItem, kpis, period, customFrom, customTo]);
 
   const maxVal = useMemo(() => {
     if (!kpis?.dailyTrends || kpis.dailyTrends.length === 0) return 10;
@@ -402,103 +464,125 @@ export const AdminDashboardScreen: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* Exactly 4 Main KPI Metric Cards (Clean 4-col desktop, 2x2 mobile) */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-            {/* 1. Warehouse Stock (Stored) */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 sm:p-3.5 shadow-xs space-y-1 sm:space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide truncate">
-                  {strings.admin.kpiStoredTitle}
-                </span>
-                <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shrink-0">
-                  <Warehouse className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
-              </div>
+          {/* Exactly 4 Main KPI Metric Cards (Consistent light & dark theme matching all dashboard boxes) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
+            {/* 1. Warehouse Stock (Always Right now) */}
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 sm:p-3.5 shadow-xs flex flex-col justify-between transition-colors min-h-[120px]">
               <div>
-                <div className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white">
-                  {kpis?.storedPieces || 0} <span className="text-xs font-bold text-slate-500">pcs</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                    WAREHOUSE STOCK
+                  </span>
+                  <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shrink-0">
+                    <Warehouse className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </div>
                 </div>
-                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 flex items-center justify-between">
-                  <span>{(kpis?.storedWeightKg || 0).toFixed(2)} kg</span>
-                  <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded">
-                    {kpis?.storedParcelsCount || 0} lots
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+                    {kpis?.storedPieces || 0}
+                  </span>
+                  <span className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400">
+                    pcs
                   </span>
                 </div>
+                <div className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                  {(kpis?.storedWeightKg || 0).toFixed(2)} kg · {kpis?.storedParcelsCount || 0} lots
+                </div>
+              </div>
+              <div className="mt-3">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800/60 shadow-2xs">
+                  Right now
+                </span>
               </div>
             </div>
 
-            {/* 2. In Transit */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 sm:p-3.5 shadow-xs space-y-1 sm:space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide truncate">
-                  {strings.admin.kpiInTransitTitle}
-                </span>
-                <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-[#ED7D24] dark:text-amber-400 shrink-0">
-                  <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
-              </div>
+            {/* 2. In Transit (Always Right now) */}
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 sm:p-3.5 shadow-xs flex flex-col justify-between transition-colors min-h-[120px]">
               <div>
-                <div className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white">
-                  {kpis?.activeTrucksCount || 0} <span className="text-xs font-bold text-slate-500">trucks</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                    IN TRANSIT
+                  </span>
+                  <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-[#ED7D24] dark:text-amber-400 shrink-0">
+                    <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </div>
                 </div>
-                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 flex items-center justify-between">
-                  <span>{(kpis?.inTransitWeightKg || 0).toFixed(2)} kg</span>
-                  <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded">
-                    {kpis?.inTransitBoxesCount || 0} boxes
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+                    {kpis?.activeTrucksCount || 0}
+                  </span>
+                  <span className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400">
+                    trucks
                   </span>
                 </div>
+                <div className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                  {(kpis?.inTransitWeightKg || 0).toFixed(2)} kg · {kpis?.inTransitBoxesCount || 0} boxes
+                </div>
+              </div>
+              <div className="mt-3">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800/60 shadow-2xs">
+                  Right now
+                </span>
               </div>
             </div>
 
-            {/* 3. Delivered */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 sm:p-3.5 shadow-xs space-y-1 sm:space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide truncate">
-                  {strings.admin.kpiDeliveredTitle}
-                </span>
-                <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 shrink-0">
-                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
-              </div>
+            {/* 3. Delivered (Linked to Intake Graph Date / Period) */}
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 sm:p-3.5 shadow-xs flex flex-col justify-between transition-colors min-h-[120px]">
               <div>
-                <div className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white">
-                  {kpis?.deliveredPieces || 0} <span className="text-xs font-bold text-slate-500">pcs</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                    DELIVERED
+                  </span>
+                  <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </div>
                 </div>
-                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 flex items-center justify-between">
-                  <span>{(kpis?.deliveredWeightKg || 0).toFixed(2)} kg</span>
-                  <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded">
-                    {kpis?.deliveredParcelsCount || 0} lots
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+                    {displayDeliveredPieces}
+                  </span>
+                  <span className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400">
+                    pcs
                   </span>
                 </div>
+                <div className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                  {displayDeliveredWeightKg.toFixed(2)} kg · {displayDeliveredLotsCount} lot{displayDeliveredLotsCount === 1 ? '' : 's'}
+                </div>
+              </div>
+              <div className="mt-3">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-400 dark:border-blue-800/60 shadow-2xs">
+                  {deliveredDateBadge}
+                </span>
               </div>
             </div>
 
-            {/* 4. Returned */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 sm:p-3.5 shadow-xs space-y-1 sm:space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-[11px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wide truncate">
-                  {strings.admin.kpiReturnedTitle}
-                </span>
-                <div className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 shrink-0">
-                  <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            {/* 4. Returned (Linked to Intake Graph Date / Period) */}
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 sm:p-3.5 shadow-xs flex flex-col justify-between transition-colors min-h-[120px]">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
+                    RETURNED
+                  </span>
+                  <div className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 shrink-0">
+                    <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </div>
+                </div>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+                    {displayReturnedPieces}
+                  </span>
+                  <span className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400">
+                    pcs
+                  </span>
+                </div>
+                <div className="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                  {displayReturnedWeightKg.toFixed(2)} kg · {displayReturnedCount} return{displayReturnedCount === 1 ? '' : 's'}
                 </div>
               </div>
-              <div>
-                <div className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white">
-                  {kpis?.returnedPieces || 0} <span className="text-xs font-bold text-slate-500">pcs</span>
-                </div>
-                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5 flex items-center justify-between">
-                  <span>{(kpis?.returnedWeightKg || 0).toFixed(2)} kg</span>
-                  {(kpis?.toBeReturnedCount || 0) > 0 ? (
-                    <span className="font-mono text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 font-bold px-1 py-0.2 rounded">
-                      {kpis?.toBeReturnedCount} to return
-                    </span>
-                  ) : (
-                    <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded">
-                      {kpis?.returnedCount || 0} returned
-                    </span>
-                  )}
-                </div>
+              <div className="mt-3">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-400 dark:border-blue-800/60 shadow-2xs">
+                  {returnedDateBadge}
+                </span>
               </div>
             </div>
           </div>
@@ -515,6 +599,18 @@ export const AdminDashboardScreen: React.FC = () => {
                   <h3 className="font-black text-sm sm:text-base text-slate-900 dark:text-white tracking-tight">
                     {getIntakeCardTitle()}
                   </h3>
+
+                  {selectedTrendItem && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDate(null)}
+                      className="px-2 py-0.5 rounded-lg bg-blue-100 text-[#1E75BB] dark:bg-blue-950/70 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-bold flex items-center gap-1 hover:bg-blue-200 dark:hover:bg-blue-900 transition-colors cursor-pointer"
+                      title="Click to reset filter to full period"
+                    >
+                      <span>Filtered: {selectedTrendItem.displayDate}</span>
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
 
                   {/* Summary Intake Badges */}
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -574,7 +670,10 @@ export const AdminDashboardScreen: React.FC = () => {
                 <div className="relative inline-flex items-center shrink-0">
                   <select
                     value={period}
-                    onChange={(e) => setPeriod(e.target.value as any)}
+                    onChange={(e) => {
+                      setPeriod(e.target.value as any);
+                      setSelectedDate(null);
+                    }}
                     className="appearance-none pl-3 pr-8 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#1E75BB] focus:ring-1 focus:ring-[#1E75BB] shadow-2xs cursor-pointer min-h-[32px] leading-tight"
                   >
                     <option value="today">{strings.admin.kpiPeriodToday}</option>
@@ -616,11 +715,44 @@ export const AdminDashboardScreen: React.FC = () => {
               ) : (
                 <div className="space-y-2">
                   {/* Selected Date Metric Inspection Card */}
-                  {activeTrendItem && (
+                  {selectedTrendItem ? (
+                    <div className="flex items-center justify-between text-xs px-2.5 py-1.5 bg-blue-50/80 dark:bg-blue-950/40 rounded-lg border border-blue-200 dark:border-blue-800 flex-wrap gap-2 animate-in fade-in">
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-[#1E75BB] dark:text-[#2D8AD1] flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>{selectedTrendItem.displayDate} ({selectedTrendItem.date})</span>
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400">
+                          (Delivered & Returned tags linked)
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 font-mono text-[11px] text-slate-600 dark:text-slate-300">
+                        <span className="font-extrabold text-[#1E75BB] dark:text-[#2D8AD1]">
+                          {selectedTrendItem.weightKg.toFixed(2)} kg
+                        </span>
+                        <span>•</span>
+                        <span className="font-bold">
+                          {selectedTrendItem.lotsCount} lots
+                        </span>
+                        <span>•</span>
+                        <span className="font-bold">
+                          {selectedTrendItem.pieces} pcs
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDate(null)}
+                          className="ml-1 p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                          title="Reset filter to period"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : activeTrendItem ? (
                     <div className="flex items-center justify-between text-xs px-2.5 py-1.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200/80 dark:border-slate-700/80 flex-wrap gap-2 animate-in fade-in">
                       <span className="font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-[#1E75BB] dark:text-[#2D8AD1]" />
-                        <span>{activeTrendItem.displayDate} ({activeTrendItem.date})</span>
+                        <span>Latest intake: {activeTrendItem.displayDate} ({activeTrendItem.date})</span>
                       </span>
                       <div className="flex items-center gap-2 font-mono text-[11px] text-slate-600 dark:text-slate-300">
                         <span className="font-extrabold text-[#1E75BB] dark:text-[#2D8AD1]">
@@ -636,7 +768,7 @@ export const AdminDashboardScreen: React.FC = () => {
                         </span>
                       </div>
                     </div>
-                  )}
+                  ) : null}
 
                   {/* Chart Stage with Y-Axis on Left */}
                   <div className="flex items-stretch h-48 pt-3 pb-1">
@@ -664,15 +796,14 @@ export const AdminDashboardScreen: React.FC = () => {
                               ? d.lotsCount
                               : d.pieces;
                           const heightPct = Math.max(Math.round((val / maxVal) * 100), val > 0 ? 4 : 0);
-                          const isSelected = (activeTrendItem?.date === d.date);
+                          const isSelected = selectedDate === d.date;
 
                           return (
                             <div
                               key={d.date}
-                              onClick={() => setSelectedDate(d.date)}
-                              onMouseEnter={() => setSelectedDate(d.date)}
+                              onClick={() => setSelectedDate((prev) => (prev === d.date ? null : d.date))}
                               className="flex-1 min-w-[46px] max-w-[80px] h-full flex flex-col justify-end items-center group cursor-pointer"
-                              title={`${d.displayDate}: ${d.weightKg.toFixed(2)} kg, ${d.lotsCount} lots, ${d.pieces} pcs`}
+                              title={`${d.displayDate}: ${d.weightKg.toFixed(2)} kg, ${d.lotsCount} lots, ${d.pieces} pcs (Click to link Delivered & Returned)`}
                             >
                               {/* The Bar (Clean, no text on top) */}
                               <div className="w-full h-[calc(100%-24px)] flex items-end">
