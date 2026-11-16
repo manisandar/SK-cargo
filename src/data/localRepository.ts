@@ -45,22 +45,29 @@ import {
 } from './seedData';
 import { getTodayIsoDate } from '../utils/date';
 
-// SSR / Node safe localStorage helper
+// SSR / Node safe localStorage / sessionStorage helper supporting Remember Me
 const safeStorage = {
   getItem: (key: string): string | null => {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      return window.localStorage.getItem(key);
+    if (typeof window !== 'undefined') {
+      return window.localStorage?.getItem(key) || window.sessionStorage?.getItem(key) || null;
     }
     return null;
   },
-  setItem: (key: string, value: string): void => {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(key, value);
+  setItem: (key: string, value: string, remember: boolean = true): void => {
+    if (typeof window !== 'undefined') {
+      if (remember) {
+        window.localStorage?.setItem(key, value);
+        window.sessionStorage?.removeItem(key);
+      } else {
+        window.sessionStorage?.setItem(key, value);
+        window.localStorage?.removeItem(key);
+      }
     }
   },
   removeItem: (key: string): void => {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.removeItem(key);
+    if (typeof window !== 'undefined') {
+      window.localStorage?.removeItem(key);
+      window.sessionStorage?.removeItem(key);
     }
   },
 };
@@ -72,17 +79,31 @@ export class LocalRepository implements IRepository {
     this.currentUserId = safeStorage.getItem('sk_cargo_user_id');
   }
 
+  private enrichUser(user: StaffUser): StaffUser {
+    const isOwner = Boolean(user.is_owner || user.email?.toLowerCase() === 'yethiha@skcargo.com');
+    return {
+      ...user,
+      is_owner: isOwner,
+    };
+  }
+
   // ----------------------------------------------------
   // Auth
   // ----------------------------------------------------
   async getCurrentUser(): Promise<StaffUser | null> {
     if (!this.currentUserId) return null;
     const user = await db.staff_users.get(this.currentUserId);
-    return user || null;
+    return user ? this.enrichUser(user) : null;
   }
 
-  async login(username: string, password?: string): Promise<StaffUser> {
-    const user = await db.staff_users.where('username').equals(username.trim()).first();
+  async login(identifier: string, password?: string, rememberMe: boolean = true): Promise<StaffUser> {
+    const cleanId = identifier.trim().toLowerCase();
+    const allUsers = await db.staff_users.toArray();
+    const user = allUsers.find(
+      (u) =>
+        (u.email && u.email.toLowerCase() === cleanId) ||
+        u.username.toLowerCase() === cleanId
+    );
     if (!user) {
       throw new Error('User not found');
     }
@@ -94,8 +115,8 @@ export class LocalRepository implements IRepository {
     }
 
     this.currentUserId = user.id;
-    safeStorage.setItem('sk_cargo_user_id', user.id);
-    return user;
+    safeStorage.setItem('sk_cargo_user_id', user.id, rememberMe);
+    return this.enrichUser(user);
   }
 
   async logout(): Promise<void> {
@@ -104,21 +125,44 @@ export class LocalRepository implements IRepository {
   }
 
   async getStaffUsers(): Promise<StaffUser[]> {
-    return db.staff_users.toArray();
+    const users = await db.staff_users.toArray();
+    const enriched = users.map((u) => this.enrichUser(u));
+
+    const rawActor = this.currentUserId ? await db.staff_users.get(this.currentUserId) : null;
+    const actor = rawActor ? this.enrichUser(rawActor) : null;
+
+    // Hide owner account from staff list when queried by any non-owner user
+    if (actor && !actor.is_owner) {
+      return enriched.filter((u) => !u.is_owner);
+    }
+
+    return enriched;
   }
 
   async createStaffUser(input: CreateStaffUserInput): Promise<StaffUser> {
-    const existing = await db.staff_users.where('username').equals(input.username.trim().toLowerCase()).first();
+    const email = input.email ? input.email.trim().toLowerCase() : '';
+    const username = (input.username || (email ? email.split('@')[0] : '')).trim().toLowerCase();
+    if (!email && !username) {
+      throw new Error('Email address is required.');
+    }
+
+    const allUsers = await db.staff_users.toArray();
+    const existing = allUsers.find(
+      (u) =>
+        (email && u.email?.toLowerCase() === email) ||
+        u.username.toLowerCase() === username
+    );
     if (existing) {
-      throw new Error(`Username "${input.username}" is already taken.`);
+      throw new Error(`Account "${email || username}" already exists.`);
     }
 
     const newUser: StaffUser = {
       id: crypto.randomUUID(),
-      username: input.username.trim().toLowerCase(),
+      email: email || username,
+      username: username,
       name: input.name.trim(),
       role: input.role,
-      password: input.password || '123456',
+      password: input.password || 'staff123',
       is_active: true,
       created_at: new Date().toISOString(),
     };
@@ -128,33 +172,101 @@ export class LocalRepository implements IRepository {
   }
 
   async updateStaffUser(id: string, input: UpdateStaffUserInput): Promise<StaffUser> {
-    const user = await db.staff_users.get(id);
-    if (!user) throw new Error('Staff user not found');
+    const rawUser = await db.staff_users.get(id);
+    if (!rawUser) throw new Error('Staff user not found');
 
-    if (input.username && input.username.trim().toLowerCase() !== user.username) {
-      const existing = await db.staff_users.where('username').equals(input.username.trim().toLowerCase()).first();
-      if (existing && existing.id !== id) {
-        throw new Error(`Username "${input.username}" is already taken.`);
+    const user = this.enrichUser(rawUser);
+    const rawActor = this.currentUserId ? await db.staff_users.get(this.currentUserId) : null;
+    const actor = rawActor ? this.enrichUser(rawActor) : null;
+
+    // 1. Owner Immunity Protection: Only the Owner can modify the Owner account
+    if (user.is_owner) {
+      if (actor && !actor.is_owner) {
+        throw new Error('Permission denied: Non-owner administrators cannot modify the System Owner account.');
+      }
+      if (input.role && input.role !== 'admin') {
+        throw new Error('Permission denied: The System Owner cannot be demoted.');
+      }
+      if (input.is_active === false) {
+        throw new Error('Permission denied: The System Owner account cannot be deactivated.');
+      }
+    }
+
+    // 2. Peer Admin Protection: Only the Owner can demote or deactivate other Admins
+    if (user.role === 'admin') {
+      if (input.role === 'staff' && actor && !actor.is_owner) {
+        throw new Error('Permission denied: Only the System Owner can demote an Administrator.');
+      }
+      if (input.is_active === false && actor && !actor.is_owner) {
+        throw new Error('Permission denied: Only the System Owner can deactivate an Administrator.');
+      }
+    }
+
+    // 3. Last Admin Guard: System must always maintain at least one active Admin
+    if (user.role === 'admin' && (input.role === 'staff' || input.is_active === false)) {
+      const allStaff = await db.staff_users.toArray();
+      const remainingAdmins = allStaff.filter(
+        (u) => u.id !== id && u.role === 'admin' && u.is_active !== false
+      );
+      if (remainingAdmins.length === 0) {
+        throw new Error('Action blocked: The system must have at least one active Administrator.');
+      }
+    }
+
+    const email = input.email !== undefined ? input.email.trim().toLowerCase() : user.email;
+    const username = input.username !== undefined ? input.username.trim().toLowerCase() : user.username;
+
+    if (email || username) {
+      const allUsers = await db.staff_users.toArray();
+      const existing = allUsers.find(
+        (u) =>
+          u.id !== id &&
+          ((email && u.email?.toLowerCase() === email) ||
+            u.username.toLowerCase() === username)
+      );
+      if (existing) {
+        throw new Error(`Account "${email || username}" is already in use by another user.`);
       }
     }
 
     const updates: Partial<StaffUser> = {};
-    if (input.username) updates.username = input.username.trim().toLowerCase();
+    if (input.email !== undefined) updates.email = input.email.trim().toLowerCase();
+    if (input.username !== undefined) updates.username = input.username.trim().toLowerCase();
     if (input.name) updates.name = input.name.trim();
     if (input.role) updates.role = input.role;
     if (input.password) updates.password = input.password;
     if (typeof input.is_active === 'boolean') updates.is_active = input.is_active;
 
     await db.staff_users.update(id, updates);
-    return (await db.staff_users.get(id))!;
+    return this.enrichUser((await db.staff_users.get(id))!);
   }
 
   async deleteStaffUser(id: string): Promise<void> {
     if (id === this.currentUserId) {
       throw new Error('Cannot delete your own currently logged-in account.');
     }
-    const user = await db.staff_users.get(id);
-    if (!user) throw new Error('Staff user not found');
+    const rawUser = await db.staff_users.get(id);
+    if (!rawUser) throw new Error('Staff user not found');
+
+    const user = this.enrichUser(rawUser);
+    if (user.is_owner) {
+      throw new Error('Permission denied: The System Owner account cannot be deleted.');
+    }
+
+    const rawActor = this.currentUserId ? await db.staff_users.get(this.currentUserId) : null;
+    const actor = rawActor ? this.enrichUser(rawActor) : null;
+    if (user.role === 'admin' && actor && !actor.is_owner) {
+      throw new Error('Permission denied: Only the System Owner can delete an Administrator account.');
+    }
+
+    const allUsers = await db.staff_users.toArray();
+    const remainingAdmins = allUsers.filter(
+      (u) => u.id !== id && u.role === 'admin' && u.is_active !== false
+    );
+    if (remainingAdmins.length === 0) {
+      throw new Error('Action blocked: Cannot delete the last remaining active Administrator.');
+    }
+
     await db.staff_users.delete(id);
   }
 
@@ -228,13 +340,13 @@ export class LocalRepository implements IRepository {
     const customers = await db.customers.toArray();
     let max = 0;
     for (const c of customers) {
-      const match = c.code.match(/SK-(\d+)/);
+      const match = c.code.match(/(?:C|SK-?)(\d+)/i);
       if (match) {
         const num = parseInt(match[1], 10);
         if (num > max) max = num;
       }
     }
-    return `SK-${String(max + 1).padStart(4, '0')}`;
+    return `C${String(max + 1).padStart(4, '0')}`;
   }
 
   async mergeCustomers(
@@ -402,8 +514,10 @@ export class LocalRepository implements IRepository {
       const photoObjects = itemPhotos.map((ph) => ({
         id: ph.id,
         url: URL.createObjectURL(ph.blob),
+        thumbnail_url: ph.thumbnail_blob ? URL.createObjectURL(ph.thumbnail_blob) : URL.createObjectURL(ph.blob),
       }));
       const photoUrls = photoObjects.map((po) => po.url);
+      const thumbnailUrls = photoObjects.map((po) => po.thumbnail_url || po.url);
 
       // Calculate locations and pieces for this specific item
       const boxItems = await db.box_items
@@ -497,6 +611,7 @@ export class LocalRepository implements IRepository {
         sub_name: subName,
         photos_count: itemPhotos.length,
         photo_urls: photoUrls,
+        thumbnail_urls: thumbnailUrls,
         photos: photoObjects,
         stored_qty: itemStored,
         packed_qty: itemPacked,
@@ -591,6 +706,13 @@ export class LocalRepository implements IRepository {
           (p.customer && p.customer.name.toLowerCase().includes(q)) ||
           p.items.some((it) => it.name_on_parcel.toLowerCase().includes(q))
       );
+    }
+
+    if (filters?.offset && filters.offset > 0) {
+      enriched = enriched.slice(filters.offset);
+    }
+    if (filters?.limit && filters.limit > 0) {
+      enriched = enriched.slice(0, filters.limit);
     }
 
     return enriched;
@@ -1575,6 +1697,15 @@ export class LocalRepository implements IRepository {
     if (!courier) throw new Error('Courier not found');
 
     const fromStatus = courier.status;
+
+    // Strict permission guard: Only administrators can update to or from 'delivered' status
+    if (toStatus === 'delivered' || fromStatus === 'delivered') {
+      const staffUser = await db.staff_users.get(userId);
+      if (staffUser && staffUser.role !== 'admin') {
+        throw new Error('Permission denied: Only administrators can update courier delivery status.');
+      }
+    }
+
     const now = new Date().toISOString();
 
     await db.transaction('rw', [db.couriers, db.boxes, db.status_history], async () => {
@@ -1642,13 +1773,13 @@ export class LocalRepository implements IRepository {
     const couriers = await db.couriers.toArray();
     let max = 0;
     for (const c of couriers) {
-      const match = c.courier_code.match(/CR-(\d+)/);
+      const match = c.courier_code.match(/(?:SK|CR-?)(\d+)/i);
       if (match) {
         const num = parseInt(match[1], 10);
         if (num > max) max = num;
       }
     }
-    return `CR-${String(max + 1).padStart(3, '0')}`;
+    return `SK${String(max + 1).padStart(4, '0')}`;
   }
 
   async addCourierPhotos(courierId: string, photos: Blob[], _userId?: string): Promise<CourierWithDetails> {
@@ -2101,7 +2232,7 @@ export class LocalRepository implements IRepository {
     // 3. Add Customers (5 realistic Myanmar customer accounts)
     const cust1: Customer = {
       id: 'c1111111-1111-4111-8111-111111111111',
-      code: 'SK-0001',
+      code: 'C0001',
       name: 'Kyaw Swar',
       phone: '092-500-1122',
       address: 'No. 45, Bogyoke Road, Yangon',
@@ -2110,7 +2241,7 @@ export class LocalRepository implements IRepository {
     };
     const cust2: Customer = {
       id: 'c2222222-2222-4222-8222-222222222222',
-      code: 'SK-0002',
+      code: 'C0002',
       name: 'Ma Thida Oo',
       phone: '089-876-5432',
       address: 'Room 3B, Pearl Condo, Bahan, Yangon',
@@ -2119,7 +2250,7 @@ export class LocalRepository implements IRepository {
     };
     const cust3: Customer = {
       id: 'c3333333-3333-4333-8333-333333333333',
-      code: 'SK-0003',
+      code: 'C0003',
       name: 'Aung Myo Htet',
       phone: '094-201-9988',
       address: 'No. 12, Merchant Street, Kyauktada, Yangon',
@@ -2128,7 +2259,7 @@ export class LocalRepository implements IRepository {
     };
     const cust4: Customer = {
       id: 'c4444444-4444-4444-8444-444444444444',
-      code: 'SK-0004',
+      code: 'C0004',
       name: 'Daw San San',
       phone: '085-555-7788',
       address: 'No. 88, Upper Pazundaung Road, Yangon',
@@ -2137,7 +2268,7 @@ export class LocalRepository implements IRepository {
     };
     const cust5: Customer = {
       id: 'c5555555-5555-4555-8555-555555555555',
-      code: 'SK-0005',
+      code: 'C0005',
       name: 'Zayar Lin',
       phone: '097-900-3344',
       address: 'Industrial Zone 1, Hlaing Tharyar, Yangon',
@@ -2149,7 +2280,7 @@ export class LocalRepository implements IRepository {
     // 4. Add Couriers (across dates: Today, -1d, -3d)
     const cr1: Courier = {
       id: 'cr111111-1111-4111-8111-111111111111',
-      courier_code: 'CR-001',
+      courier_code: 'SK0001',
       truck_no: '7D-4521 (Yangon Line)',
       dispatch_date: dateMinus1,
       status: 'in_transit',
@@ -2158,7 +2289,7 @@ export class LocalRepository implements IRepository {
     };
     const cr2: Courier = {
       id: 'cr222222-2222-4222-8222-222222222222',
-      courier_code: 'CR-002',
+      courier_code: 'SK0002',
       truck_no: '3B-1189 (Mandalay Line)',
       dispatch_date: dateMinus3,
       status: 'delivered',
@@ -2167,7 +2298,7 @@ export class LocalRepository implements IRepository {
     };
     const cr3: Courier = {
       id: 'cr333333-3333-4333-8333-333333333333',
-      courier_code: 'CR-003',
+      courier_code: 'SK0003',
       truck_no: '1A-8899 (Express Daily)',
       dispatch_date: '',
       status: 'draft',
@@ -2181,13 +2312,13 @@ export class LocalRepository implements IRepository {
       {
         id: crypto.randomUUID(),
         courier_id: cr1.id,
-        blob: makeSvgBlob('TRUCK 7D-4521', 'CR-001 In Transit Cargo', '#2563EB'),
+        blob: makeSvgBlob('TRUCK 7D-4521', 'SK0001 In Transit Cargo', '#2563EB'),
         created_at: new Date(now.getTime() - 1 * 86400000).toISOString(),
       },
       {
         id: crypto.randomUUID(),
         courier_id: cr2.id,
-        blob: makeSvgBlob('TRUCK 3B-1189', 'CR-002 Delivered Cargo', '#059669'),
+        blob: makeSvgBlob('TRUCK 3B-1189', 'SK0002 Delivered Cargo', '#059669'),
         created_at: new Date(now.getTime() - 3 * 86400000).toISOString(),
       },
     ]);

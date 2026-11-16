@@ -9,11 +9,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'SK Cargo - Warehouse Staff PWA',
+        name: 'SK Cargo - Logistics & Parcel Service',
         short_name: 'SK Cargo',
-        description: 'Staff warehouse parcel management system for SK Cargo',
-        theme_color: '#1F3A5F',
-        background_color: '#F4F6F9',
+        description: 'Thai ⇄ Myanmar parcel management and logistics service',
+        theme_color: '#1E75BB',
+        background_color: '#FAF9F6',
         display: 'standalone',
         orientation: 'portrait',
         icons: [

@@ -830,7 +830,7 @@ export const ParcelDetailModal: React.FC<ParcelDetailModalProps> = ({
                           key={idx}
                           className="relative w-12 h-12 rounded-lg border border-blue-300 dark:border-blue-700 overflow-hidden bg-white dark:bg-slate-900"
                         >
-                          <img src={url} alt="New package upload" className="w-full h-full object-cover" />
+                          <img src={url} alt="New package upload" loading="lazy" className="w-full h-full object-cover" />
                           <button
                             type="button"
                             onClick={() => handleRemoveNewItemPhoto(idx)}
@@ -1014,8 +1014,9 @@ export const ParcelDetailModal: React.FC<ParcelDetailModalProps> = ({
                                 className="relative w-16 h-16 rounded-xl border border-slate-300 dark:border-slate-700 overflow-hidden bg-slate-100 dark:bg-slate-800 group shadow-xs"
                               >
                                 <img
-                                  src={ph.url}
+                                  src={ph.thumbnail_url || ph.url}
                                   alt={`Existing photo ${pi + 1}`}
+                                  loading="lazy"
                                   onClick={() => handleOpenLightbox(ph.url)}
                                   className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
                                 />
@@ -1047,6 +1048,7 @@ export const ParcelDetailModal: React.FC<ParcelDetailModalProps> = ({
                               <img
                                 src={url}
                                 alt="New upload"
+                                loading="lazy"
                                 className="w-full h-full object-cover"
                               />
                               <button
@@ -1204,8 +1206,9 @@ export const ParcelDetailModal: React.FC<ParcelDetailModalProps> = ({
                           {it.photo_urls.map((u, pi) => (
                             <img
                               key={pi}
-                              src={u}
+                              src={it.thumbnail_urls?.[pi] || u}
                               alt={`Package ${it.item_index} photo ${pi + 1}`}
+                              loading="lazy"
                               onClick={() => handleOpenLightbox(u)}
                               className="w-16 h-16 object-cover rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:opacity-90 transition-opacity shadow-2xs"
                             />

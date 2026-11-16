@@ -1,29 +1,29 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
+  AlertCircle,
+  ArrowLeft,
   Boxes,
+  Calendar,
+  Camera,
+  ChevronLeft,
+  ChevronRight,
+  Edit2,
+  Layers,
+  Loader2,
+  Lock,
   Plus,
   Search,
   Trash2,
-  X,
-  Loader2,
-  Layers,
   Truck,
-  ArrowLeft,
-  Edit2,
-  ChevronLeft,
-  ChevronRight,
-  Calendar,
-  Camera,
-  Lock,
-  AlertCircle,
+  X,
 } from 'lucide-react';
-import { useRepository, BoxWithDetails, ParcelWithDetails, ParcelItemWithDetails } from '../data';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LightboxPhoto, PhotoLightbox } from '../components/PhotoLightbox';
 import { useAuth } from '../context/AuthContext';
 import { useDateFilter } from '../context/DateFilterContext';
+import { BoxWithDetails, ParcelItemWithDetails, ParcelWithDetails, useRepository } from '../data';
 import { strings } from '../strings';
-import { PhotoLightbox, LightboxPhoto } from '../components/PhotoLightbox';
+import { formatDisplayDate, formatLocalDate } from '../utils/date';
 import { compressPhoto } from '../utils/imageCompression';
-import { formatLocalDate, formatDisplayDate } from '../utils/date';
 
 const getCourierBadgeStyle = (status?: string) => {
   switch (status) {
@@ -198,7 +198,7 @@ export const RepackingScreen: React.FC = () => {
 
   const handleOpenAddParcelsView = () => {
     if (isBoxLocked) {
-      alert(`⚠️ Big Box is ${isBoxDelivered ? 'delivered' : 'in transit'}. Modifying cargo pieces or adding parcels is not permitted.`);
+      alert(`⚠️ Big Box is ${isBoxDelivered ? 'delivered' : 'in transit'}. Modifying is not permitted.`);
       return;
     }
     setModalView('add_parcels');
@@ -460,11 +460,10 @@ export const RepackingScreen: React.FC = () => {
           <button
             type="button"
             onClick={() => setSelectedDate(selectedDate === 'all' ? todayIso : 'all')}
-            className={`px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold border transition-colors shrink-0 min-h-[34px] ${
-              selectedDate === 'all'
-                ? 'bg-[#1E75BB] text-white border-[#1E75BB]'
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
-            }`}
+            className={`px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold border transition-colors shrink-0 min-h-[34px] ${selectedDate === 'all'
+              ? 'bg-[#1E75BB] text-white border-[#1E75BB]'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+              }`}
           >
             {strings.parcelsList.allDates}
           </button>
@@ -581,14 +580,14 @@ export const RepackingScreen: React.FC = () => {
                           <div
                             key={pi}
                             onClick={() => handleOpenLightbox(boxPhotos, pi)}
-                            className={`relative w-11 h-11 rounded-lg border overflow-hidden bg-slate-50 dark:bg-slate-800 cursor-pointer hover:opacity-90 shrink-0 shadow-2xs ${
-                              isBoxPhoto ? 'border-[#1E75BB] ring-1 ring-[#1E75BB]/30' : 'border-slate-200 dark:border-slate-700'
-                            }`}
+                            className={`relative w-11 h-11 rounded-lg border overflow-hidden bg-slate-50 dark:bg-slate-800 cursor-pointer hover:opacity-90 shrink-0 shadow-2xs ${isBoxPhoto ? 'border-[#1E75BB] ring-1 ring-[#1E75BB]/30' : 'border-slate-200 dark:border-slate-700'
+                              }`}
                             title={isBoxPhoto ? 'Repacked Master Box Photo' : 'Contents Photo'}
                           >
                             <img
-                              src={ph.url}
+                              src={ph.thumbnailUrl || ph.url}
                               alt={ph.title || `Box photo ${pi + 1}`}
+                              loading="lazy"
                               className="w-full h-full object-cover"
                             />
                             {isBoxPhoto && (
@@ -631,7 +630,7 @@ export const RepackingScreen: React.FC = () => {
       {selectedBoxId && activeBox && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden space-y-4 p-5 max-h-[92vh] flex flex-col animate-in zoom-in-95 text-slate-800 dark:text-slate-100">
-            
+
             {/* View 1: Box Details & Contents */}
             {modalView === 'details' ? (
               <>
@@ -658,7 +657,7 @@ export const RepackingScreen: React.FC = () => {
                   <div className="p-3 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 rounded-xl text-xs font-bold flex items-center gap-2 shrink-0">
                     <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                     <span>
-                      ⚠️ Big box is {isBoxDelivered ? 'delivered' : `in transit on truck (${activeBox.courier?.truck_no || 'dispatched'})`}. Modifying cargo pieces, adding parcels, or removing items is not permitted.
+                      ⚠️ Big box is {isBoxDelivered ? 'delivered' : `in transit on truck (${activeBox.courier?.truck_no || 'dispatched'})`}. Modifying is not permitted.
                     </span>
                   </div>
                 )}
@@ -712,7 +711,7 @@ export const RepackingScreen: React.FC = () => {
 
                   {(activeBox.photos || []).length === 0 ? (
                     <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">
-                      No photos of the repacked master box yet. Tap &quot;+ Add Box Photo&quot; to upload carton photos.
+                      Tap &quot;+ Add Box Photo&quot; to upload carton photos.
                     </p>
                   ) : (
                     <div className="flex items-center gap-2 overflow-x-auto py-1">
@@ -722,8 +721,9 @@ export const RepackingScreen: React.FC = () => {
                           className="relative w-16 h-16 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 group bg-white dark:bg-slate-800 shadow-2xs"
                         >
                           <img
-                            src={p.url}
+                            src={p.thumbnail_url || p.url}
                             alt="Repacked box"
+                            loading="lazy"
                             className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
                             onClick={() => {
                               const allPhotos: LightboxPhoto[] = [
@@ -789,7 +789,7 @@ export const RepackingScreen: React.FC = () => {
 
                   {groupedContents.length === 0 ? (
                     <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/60 rounded-xl text-xs text-slate-400 dark:text-slate-500">
-                      This big box is empty. Tap &quot;+ Add Stored Parcels&quot; above to pack warehouse inventory into this box.
+                      This big box is empty. Tap &quot;+ Add Stored Parcels&quot; above to pack.
                     </div>
                   ) : (
                     groupedContents.map((group, gIdx) => (
@@ -813,6 +813,7 @@ export const RepackingScreen: React.FC = () => {
                           {group.items.map((it) => {
                             const itemPhotos = (it.item?.photo_urls || []).map((u, pi) => ({
                               url: u,
+                              thumbnailUrl: it.item?.thumbnail_urls?.[pi] || u,
                               title: `${it.parcel.parcel_code} • ${it.item?.item_name || it.item?.name_on_parcel}`,
                               subtitle: `Photo ${pi + 1}`,
                             }));
@@ -825,8 +826,9 @@ export const RepackingScreen: React.FC = () => {
                                 <div className="flex items-start gap-2 min-w-0">
                                   {itemPhotos.length > 0 && (
                                     <img
-                                      src={itemPhotos[0].url}
+                                      src={itemPhotos[0].thumbnailUrl || itemPhotos[0].url}
                                       alt="Item thumbnail"
+                                      loading="lazy"
                                       onClick={() => handleOpenLightbox(itemPhotos, 0)}
                                       className="w-10 h-10 object-cover rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:opacity-90 shrink-0 mt-0.5 shadow-2xs"
                                     />

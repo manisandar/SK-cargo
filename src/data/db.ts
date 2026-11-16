@@ -44,7 +44,7 @@ export class SKCargoDatabase extends Dexie {
       couriers: 'id, courier_code, truck_no, status, dispatch_date, created_at',
       courier_loose_items: 'id, courier_id, parcel_id, parcel_item_id, created_at',
       status_history: 'id, [entity_type+entity_id], entity_id, changed_at',
-      staff_users: 'id, username, role',
+      staff_users: 'id, username, email, role',
     });
 
     this.version(5).stores({

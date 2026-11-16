@@ -61,8 +61,9 @@ export const App: React.FC = () => {
             <DateFilterProvider>
               <BrowserRouter>
                 <Routes>
-                  <Route path="/landing" element={<LandingScreen />} />
-                  <Route path="/home" element={<LandingScreen />} />
+                  <Route path="/homepage" element={<LandingScreen />} />
+                  <Route path="/landing" element={<Navigate to="/homepage" replace />} />
+                  <Route path="/home" element={<Navigate to="/homepage" replace />} />
                   <Route path="/login" element={<LoginScreen />} />
 
                   <Route

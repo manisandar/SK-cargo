@@ -1,21 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useRepository } from '../data';
 import { strings } from '../strings';
-import { StaffUser } from '../types';
-import { ShieldAlert, User, KeyRound, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Mail, KeyRound, ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export const LoginScreen: React.FC = () => {
   const { login, user } = useAuth();
-  const repository = useRepository();
   const navigate = useNavigate();
 
-  const [username, setUsername] = useState('staff1');
-  const [password, setPassword] = useState('staff123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [stayLoggedIn, setStayLoggedIn] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -27,18 +25,14 @@ export const LoginScreen: React.FC = () => {
     }
   }, [user, navigate]);
 
-  useEffect(() => {
-    repository.getStaffUsers().then((users) => {
-      setStaffUsers(users);
-    });
-  }, [repository]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.trim() || !password) return;
+
     setError(null);
     setIsSubmitting(true);
     try {
-      const loggedIn = await login(username, password);
+      const loggedIn = await login(email.trim(), password, stayLoggedIn);
       if (loggedIn.role === 'admin') {
         navigate('/admin/dashboard');
       } else {
@@ -49,12 +43,6 @@ export const LoginScreen: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleQuickSelect = (u: StaffUser) => {
-    setUsername(u.username);
-    setPassword(u.password || 'staff123');
-    setError(null);
   };
 
   return (
@@ -77,17 +65,6 @@ export const LoginScreen: React.FC = () => {
           </p>
         </div>
 
-        {/* Temporary Auth Banner */}
-        <div className="bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-900/50 px-4 py-3 flex items-start gap-2.5">
-          <ShieldAlert className="w-5 h-5 text-[#D9822B] flex-shrink-0 mt-0.5" />
-          <div className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed font-medium">
-            <span className="font-bold block uppercase tracking-wider text-[10px] text-[#D9822B]">
-              {strings.app.temporaryNotice}
-            </span>
-            {strings.auth.tempLoginNotice}
-          </div>
-        </div>
-
         {/* Form Body */}
         <div className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -99,17 +76,21 @@ export const LoginScreen: React.FC = () => {
 
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                {strings.auth.usernameLabel}
+                {strings.auth.emailLabel}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <User className="w-4 h-4" />
+                  <Mail className="w-4 h-4" />
                 </div>
                 <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder={strings.auth.usernamePlaceholder}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={strings.auth.emailPlaceholder}
+                  autoComplete="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1E75BB] focus:bg-white dark:focus:bg-slate-800 min-h-[44px]"
                   required
                 />
@@ -125,64 +106,58 @@ export const LoginScreen: React.FC = () => {
                   <KeyRound className="w-4 h-4" />
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={strings.auth.passwordPlaceholder}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1E75BB] focus:bg-white dark:focus:bg-slate-800 min-h-[44px]"
+                  autoComplete="current-password"
+                  className="w-full pl-10 pr-11 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1E75BB] focus:bg-white dark:focus:bg-slate-800 min-h-[44px]"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
+            </div>
+
+            {/* Stay logged in option */}
+            <div className="flex items-center justify-between pt-0.5">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-700 dark:text-slate-300 font-medium">
+                <input
+                  type="checkbox"
+                  checked={stayLoggedIn}
+                  onChange={(e) => setStayLoggedIn(e.target.checked)}
+                  className="w-4 h-4 rounded text-[#1E75BB] focus:ring-[#1E75BB] border-slate-300 dark:border-slate-700 dark:bg-slate-800 cursor-pointer"
+                />
+                <span>{strings.auth.rememberMeLabel}</span>
+              </label>
             </div>
 
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full mt-2 bg-[#1E75BB] hover:bg-[#165B94] active:bg-[#124673] text-white font-bold py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 text-sm min-h-[44px] transition-colors"
+              disabled={isSubmitting || !email.trim() || !password}
+              className="w-full mt-2 bg-[#1E75BB] hover:bg-[#165B94] active:bg-[#124673] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 text-sm min-h-[44px] transition-colors"
             >
-              <span>{strings.auth.loginButton}</span>
-              <ArrowRight className="w-4 h-4" />
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Signing In...</span>
+                </>
+              ) : (
+                <>
+                  <span>{strings.auth.loginButton}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </form>
-
-          {/* Quick select demo users */}
-          {staffUsers.length > 0 && (
-            <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5">
-                {strings.auth.quickFillTitle}
-              </p>
-              <div className="space-y-2">
-                {staffUsers.map((u) => {
-                  const isSelected = username === u.username;
-                  return (
-                    <button
-                      key={u.id}
-                      type="button"
-                      onClick={() => handleQuickSelect(u)}
-                      className={`w-full text-left p-2.5 rounded-xl border flex items-center justify-between text-xs transition-colors min-h-[44px] ${
-                        isSelected
-                          ? 'border-[#1E75BB] bg-blue-50/70 dark:bg-blue-950/40 text-[#1E75BB] dark:text-[#2D8AD1] font-semibold'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-bold text-slate-900 dark:text-white">{u.name}</span>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                          @{u.username} • {u.role === 'admin' ? strings.auth.roleAdmin : strings.auth.roleStaff}
-                        </span>
-                      </div>
-                      {isSelected && (
-                        <CheckCircle2 className="w-4 h-4 text-[#1E75BB] dark:text-[#2D8AD1]" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
   );
 };
-

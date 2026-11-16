@@ -1,18 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useRepository, StaffUser } from '../../data';
-import { useAuth } from '../../context/AuthContext';
-import { strings } from '../../strings';
 import {
-  Users,
-  Plus,
-  Edit2,
-  Shield,
-  UserCheck,
-  X,
-  Loader2,
   Check,
   ChevronDown,
+  Edit2,
+  Loader2,
+  Plus,
+  Shield,
+  Trash2,
+  UserCheck,
+  Users,
+  X,
 } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { StaffUser, useRepository } from '../../data';
+import { strings } from '../../strings';
 
 export const StaffManagementScreen: React.FC = () => {
   const repository = useRepository();
@@ -26,7 +27,7 @@ export const StaffManagementScreen: React.FC = () => {
   const [editingStaff, setEditingStaff] = useState<StaffUser | null>(null);
 
   // Form State
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState<'staff' | 'admin'>('staff');
   const [password, setPassword] = useState('');
@@ -51,7 +52,7 @@ export const StaffManagementScreen: React.FC = () => {
   }, [loadStaff]);
 
   const handleOpenCreate = () => {
-    setUsername('');
+    setEmail('');
     setName('');
     setRole('staff');
     setPassword('staff123');
@@ -62,7 +63,7 @@ export const StaffManagementScreen: React.FC = () => {
 
   const handleOpenEdit = (staff: StaffUser) => {
     setEditingStaff(staff);
-    setUsername(staff.username);
+    setEmail(staff.email || '');
     setName(staff.name);
     setRole(staff.role);
     setPassword('');
@@ -72,16 +73,18 @@ export const StaffManagementScreen: React.FC = () => {
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim() || !name.trim()) {
-      setFormError('Username and Display Name are required.');
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedName = name.trim();
+    if (!trimmedEmail || !trimmedName) {
+      setFormError('Email Address and Display Name are required.');
       return;
     }
     setIsSubmitting(true);
     setFormError(null);
     try {
       await repository.createStaffUser({
-        username: username.trim(),
-        name: name.trim(),
+        email: trimmedEmail,
+        name: trimmedName,
         role,
         password: password.trim() || 'staff123',
       });
@@ -106,6 +109,7 @@ export const StaffManagementScreen: React.FC = () => {
     setFormError(null);
     try {
       await repository.updateStaffUser(editingStaff.id, {
+        email: email.trim().toLowerCase() || undefined,
         name: name.trim(),
         role,
         password: password.trim() ? password.trim() : undefined,
@@ -115,6 +119,37 @@ export const StaffManagementScreen: React.FC = () => {
       await loadStaff();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to update staff account';
+      setFormError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const currentUserIsOwner = Boolean(
+    currentUser?.is_owner || currentUser?.email?.toLowerCase() === 'yethiha@skcargo.com'
+  );
+
+  // Other admins CANNOT see the owner account in the staff page
+  const visibleStaffList = staffList.filter((staff) => {
+    const isStaffOwner = Boolean(staff.is_owner || staff.email?.toLowerCase() === 'yethiha@skcargo.com');
+    if (!currentUserIsOwner && isStaffOwner) {
+      return false;
+    }
+    return true;
+  });
+
+  const handleDeleteStaff = async (staffId: string, staffName: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${staffName}"? This action cannot be undone.`)) {
+      return;
+    }
+    setIsSubmitting(true);
+    setFormError(null);
+    try {
+      await repository.deleteStaffUser(staffId);
+      setEditingStaff(null);
+      await loadStaff();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete staff account';
       setFormError(msg);
     } finally {
       setIsSubmitting(false);
@@ -150,7 +185,7 @@ export const StaffManagementScreen: React.FC = () => {
           <Loader2 className="w-7 h-7 animate-spin text-[#1E75BB]" />
           <span>Loading staff directory...</span>
         </div>
-      ) : staffList.length === 0 ? (
+      ) : visibleStaffList.length === 0 ? (
         <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
           <Users className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
           <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
@@ -159,9 +194,10 @@ export const StaffManagementScreen: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
-          {staffList.map((staff) => {
+          {visibleStaffList.map((staff) => {
             const isSelf = staff.id === currentUser?.id;
             const isAdmin = staff.role === 'admin';
+            const isOwner = Boolean(staff.is_owner || staff.email?.toLowerCase() === 'yethiha@skcargo.com');
             const isActiveAccount = staff.is_active !== false;
 
             return (
@@ -173,11 +209,10 @@ export const StaffManagementScreen: React.FC = () => {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm ${
-                          isAdmin
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm ${isAdmin
                             ? 'bg-blue-100 text-[#1E75BB] dark:bg-blue-950/60 dark:text-blue-300'
                             : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                        }`}
+                          }`}
                       >
                         {isAdmin ? <Shield className="w-5 h-5" /> : <UserCheck className="w-5 h-5" />}
                       </div>
@@ -192,36 +227,40 @@ export const StaffManagementScreen: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        <span className="text-xs font-mono text-slate-400">
-                          @{staff.username}
-                        </span>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium truncate max-w-[200px]">
+                          {staff.email || staff.username}
+                        </div>
                       </div>
                     </div>
 
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                        isAdmin
-                          ? 'bg-blue-50 text-[#1E75BB] border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900'
-                          : 'bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
-                      }`}
-                    >
-                      {isAdmin ? strings.auth.roleAdmin : strings.auth.roleStaff}
-                    </span>
+                    {isOwner && currentUserIsOwner ? (
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-900 flex items-center gap-1 shadow-xs">
+                        <span>👑</span>
+                        <span>Owner</span>
+                      </span>
+                    ) : (
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${isAdmin
+                            ? 'bg-blue-50 text-[#1E75BB] border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900'
+                            : 'bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                          }`}
+                      >
+                        {isAdmin ? strings.auth.roleAdmin : strings.auth.roleStaff}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
                     <span>Account Status:</span>
                     <span
-                      className={`font-bold flex items-center gap-1 ${
-                        isActiveAccount
+                      className={`font-bold flex items-center gap-1 ${isActiveAccount
                           ? 'text-emerald-600 dark:text-emerald-400'
                           : 'text-rose-500 dark:text-rose-400'
-                      }`}
+                        }`}
                     >
                       <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          isActiveAccount ? 'bg-emerald-500' : 'bg-rose-500'
-                        }`}
+                        className={`w-1.5 h-1.5 rounded-full ${isActiveAccount ? 'bg-emerald-500' : 'bg-rose-500'
+                          }`}
                       ></span>
                       <span>{isActiveAccount ? 'Active' : 'Inactive'}</span>
                     </span>
@@ -269,14 +308,14 @@ export const StaffManagementScreen: React.FC = () => {
             <form onSubmit={handleCreateSubmit} className="space-y-3.5 text-xs">
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {strings.admin.usernameLabel} *
+                  {strings.admin.emailLabel} *
                 </label>
                 <input
-                  type="text"
+                  type="email"
                   required
-                  placeholder="e.g. staff3 or manager"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder={strings.admin.emailPlaceholder}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-100"
                 />
               </div>
@@ -377,13 +416,14 @@ export const StaffManagementScreen: React.FC = () => {
             <form onSubmit={handleEditSubmit} className="space-y-3.5 text-xs">
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Username (@{editingStaff.username})
+                  {strings.admin.emailLabel}
                 </label>
                 <input
-                  type="text"
-                  disabled
-                  value={editingStaff.username}
-                  className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-700 rounded-xl font-mono text-slate-500 cursor-not-allowed"
+                  type="email"
+                  placeholder="staff@skcargo.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-100"
                 />
               </div>
 
@@ -400,27 +440,49 @@ export const StaffManagementScreen: React.FC = () => {
                 />
               </div>
 
+              {/* Role Select */}
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
                   {strings.admin.roleLabel}
                 </label>
-                <div className="relative">
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value as 'staff' | 'admin')}
-                    disabled={editingStaff.id === currentUser?.id}
-                    className="w-full appearance-none pl-3 pr-8 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-100 disabled:opacity-50 focus:outline-none focus:border-[#1E75BB] cursor-pointer"
-                  >
-                    <option value="staff">{strings.auth.roleStaff}</option>
-                    <option value="admin">{strings.auth.roleAdmin}</option>
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-                {editingStaff.id === currentUser?.id && (
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    You cannot change your own admin role.
-                  </p>
-                )}
+                {(() => {
+                  const isEditingOwner = Boolean(editingStaff.is_owner || editingStaff.email?.toLowerCase() === 'yethiha@skcargo.com');
+                  const currentUserIsOwner = Boolean(currentUser?.is_owner || currentUser?.email?.toLowerCase() === 'yethiha@skcargo.com');
+                  const isSelf = editingStaff.id === currentUser?.id;
+                  const canEditRole = !isSelf && !isEditingOwner && (currentUserIsOwner || editingStaff.role !== 'admin');
+
+                  return (
+                    <>
+                      <div className="relative">
+                        <select
+                          value={role}
+                          onChange={(e) => setRole(e.target.value as 'staff' | 'admin')}
+                          disabled={!canEditRole}
+                          className="w-full appearance-none pl-3 pr-8 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-slate-100 disabled:opacity-50 focus:outline-none focus:border-[#1E75BB] cursor-pointer"
+                        >
+                          <option value="staff">{strings.auth.roleStaff}</option>
+                          <option value="admin">{strings.auth.roleAdmin}</option>
+                        </select>
+                        <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
+                      {isEditingOwner && (
+                        <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold mt-1 flex items-center gap-1">
+                          <span>👑</span> System Owner role cannot be changed or demoted.
+                        </p>
+                      )}
+                      {!isEditingOwner && isSelf && (
+                        <p className="text-[10px] text-slate-400 mt-1">
+                          You cannot change your own admin role.
+                        </p>
+                      )}
+                      {!isEditingOwner && !isSelf && !currentUserIsOwner && editingStaff.role === 'admin' && (
+                        <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold mt-1">
+                          Only the System Owner can change administrator roles.
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
 
               <div>
@@ -436,43 +498,73 @@ export const StaffManagementScreen: React.FC = () => {
                 />
               </div>
 
-              {editingStaff.id !== currentUser?.id && (
-                <div className="pt-1">
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={isActive}
-                      onChange={(e) => setIsActive(e.target.checked)}
-                      className="rounded text-[#1E75BB] focus:ring-[#1E75BB]"
-                    />
-                    <span className="font-bold text-slate-700 dark:text-slate-300">
-                      Active Account (uncheck to deactivate access)
-                    </span>
-                  </label>
-                </div>
-              )}
+              {(() => {
+                const isEditingOwner = Boolean(editingStaff.is_owner || editingStaff.email?.toLowerCase() === 'yethiha@skcargo.com');
+                const isSelf = editingStaff.id === currentUser?.id;
+                const canToggleActive = !isSelf && !isEditingOwner && (currentUserIsOwner || editingStaff.role !== 'admin');
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setEditingStaff(null)}
-                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold min-h-[40px]"
-                >
-                  {strings.common.cancel}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-[#1E75BB] hover:bg-[#165B94] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs min-h-[40px]"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Check className="w-4 h-4" />
-                  )}
-                  <span>{strings.common.save}</span>
-                </button>
-              </div>
+                if (!canToggleActive) return null;
+
+                return (
+                  <div className="pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={isActive}
+                        onChange={(e) => setIsActive(e.target.checked)}
+                        className="rounded text-[#1E75BB] focus:ring-[#1E75BB]"
+                      />
+                      <span className="font-bold text-slate-700 dark:text-slate-300">
+                        Active Account (uncheck to deactivate access)
+                      </span>
+                    </label>
+                  </div>
+                );
+              })()}
+
+              {(() => {
+                const isEditingOwner = Boolean(editingStaff.is_owner || editingStaff.email?.toLowerCase() === 'yethiha@skcargo.com');
+                const isSelf = editingStaff.id === currentUser?.id;
+                const canDelete = !isSelf && !isEditingOwner && (currentUserIsOwner || editingStaff.role !== 'admin');
+
+                return (
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    {canDelete ? (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteStaff(editingStaff.id, editingStaff.name)}
+                        disabled={isSubmitting}
+                        className="px-3 py-2 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-950/60 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors min-h-[40px]"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete Account</span>
+                      </button>
+                    ) : <div />}
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingStaff(null)}
+                        className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold min-h-[40px]"
+                      >
+                        {strings.common.cancel}
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="px-4 py-2 bg-[#1E75BB] hover:bg-[#165B94] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs min-h-[40px]"
+                      >
+                        {isSubmitting ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Check className="w-4 h-4" />
+                        )}
+                        <span>{strings.common.save}</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             </form>
           </div>
         </div>

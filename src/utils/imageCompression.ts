@@ -13,12 +13,12 @@ import imageCompression from 'browser-image-compression';
  * - To force JPEG instead of WebP: change `preferredMimeType` to 'image/jpeg'.
  */
 export const PHOTO_COMPRESSION_CONFIG = {
-  /** Maximum pixel dimension for width or height (maintains original aspect ratio) */
-  maxWidthOrHeight: 1280,
-  /** Maximum file size in megabytes (0.3 MB = ~300 KB target) */
-  maxSizeMB: 0.3,
-  /** Initial compression quality (0.0 - 1.0) before iteration */
-  initialQuality: 0.82,
+  /** Maximum pixel dimension for width or height (max 1200px on longest side) */
+  maxWidthOrHeight: 1200,
+  /** Maximum file size in megabytes (0.25 MB = ~250 KB target under free plan) */
+  maxSizeMB: 0.25,
+  /** Initial compression quality (~72) before iteration */
+  initialQuality: 0.72,
   /**
    * Automatically normalizes photo orientation based on EXIF while stripping
    * heavy camera metadata (GPS, lens info, thumbnails) to save 10-30 KB per photo.
@@ -35,11 +35,11 @@ export const PHOTO_COMPRESSION_CONFIG = {
 };
 
 /**
- * Settings for generating fast, ultra-compact thumbnail previews (~15-30 KB)
+ * Settings for generating fast, ultra-compact thumbnail previews (~25-30 KB)
  * used in admin list views and cards without fetching full photos.
  */
 export const THUMBNAIL_CONFIG = {
-  maxWidthOrHeight: 200,
+  maxWidthOrHeight: 250,
   maxSizeMB: 0.03, // ~30 KB
   initialQuality: 0.70,
   preserveExif: false,

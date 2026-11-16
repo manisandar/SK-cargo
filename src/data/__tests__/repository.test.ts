@@ -17,17 +17,19 @@ async function runTests() {
   console.log('✅ Test 1 Passed: Database starts completely clean with 0 sample records.');
 
   // Test 2: Auth & Staff Users
-  console.log('Test 2: Testing Staff Users and Login...');
+  console.log('Test 2: Testing Staff Users and Login (by email or username)...');
   const users = await repo.getStaffUsers();
   console.assert(users.length >= 3, `Expected >= 3 staff users, got ${users.length}`);
-  const logged = await repo.login('staff1', 'staff123');
+  const logged = await repo.login('staff1@skcargo.com', 'staff123', true);
   console.assert(logged.username === 'staff1', 'Username should match staff1');
+  const loggedByUsername = await repo.login('staff1', 'staff123', false);
+  console.assert(loggedByUsername.username === 'staff1', 'Login by username should also work');
   console.log('✅ Test 2 Passed: Staff auth functional.');
 
   // Test 3: Customer Creation & Exact Case-Insensitive Match (Allows similar names like Johnny & John)
   console.log('Test 3: Testing Customer Creation and Exact Case-Insensitive Match...');
   const nextCustCode = await repo.getNextCustomerCode();
-  console.assert(nextCustCode.startsWith('SK-'), `Code should start with SK-, got ${nextCustCode}`);
+  console.assert(nextCustCode.startsWith('C'), `Code should start with C, got ${nextCustCode}`);
 
   const newCust = await repo.createCustomer({
     name: 'Aung Kyaw Thu',
@@ -164,7 +166,7 @@ async function runTests() {
     logged.id
   );
 
-  console.assert(courier.courier_code.startsWith('CR-'), 'Courier code should start with CR-');
+  console.assert(courier.courier_code.startsWith('SK'), `Courier code should start with SK, got ${courier.courier_code}`);
   console.assert(courier.truck_no === '7D-9999 (Express Line)', 'Truck no should match');
 
   // Add the big box to courier
@@ -201,8 +203,22 @@ async function runTests() {
   const transitFilterResult = await repo.getParcels({ status: 'in_transit' });
   console.assert(transitFilterResult.some((p) => p.id === createdParcel.id), 'In-transit filter should include parcel with pieces on truck');
 
-  // Deliver courier
-  await repo.updateCourierStatus(courier.id, 'delivered', logged.id, 'Truck arrived');
+  // Permission check: Staff member attempting to deliver courier must throw error
+  let caughtStaffDeliveryError = false;
+  try {
+    await repo.updateCourierStatus(courier.id, 'delivered', logged.id, 'Staff trying to deliver');
+  } catch (err: unknown) {
+    caughtStaffDeliveryError = true;
+    console.assert(
+      err instanceof Error && err.message.includes('Only administrators'),
+      `Expected admin permission error, got: ${(err as Error).message}`
+    );
+  }
+  console.assert(caughtStaffDeliveryError, 'Staff user must NOT be allowed to update courier to delivered');
+
+  // Admin logs in and delivers courier
+  const adminUser = await repo.login('yethiha@skcargo.com', 'admin123');
+  await repo.updateCourierStatus(courier.id, 'delivered', adminUser.id, 'Admin marked truck arrived');
   const boxAfterDeliver = await repo.getBoxById(newBox.id);
   console.assert(boxAfterDeliver?.status === 'delivered', 'Box should cascade to delivered');
 
@@ -210,8 +226,21 @@ async function runTests() {
   console.assert(parcelDelivered?.breakdown.delivered_qty === 60, `Expected 60 delivered, got ${parcelDelivered?.breakdown.delivered_qty}`);
   console.assert(parcelDelivered?.breakdown.stored_qty === 41, `Expected 41 stored, got ${parcelDelivered?.breakdown.stored_qty}`);
 
-  // Test reverting from delivered back to in_transit (to fix mistakes)
-  await repo.updateCourierStatus(courier.id, 'in_transit', logged.id, 'Reverting delivery mistake');
+  // Permission check: Staff member attempting to revert delivered courier must throw error
+  let caughtStaffRevertError = false;
+  try {
+    await repo.updateCourierStatus(courier.id, 'in_transit', logged.id, 'Staff revert attempt');
+  } catch (err: unknown) {
+    caughtStaffRevertError = true;
+    console.assert(
+      err instanceof Error && err.message.includes('Only administrators'),
+      `Expected admin permission error, got: ${(err as Error).message}`
+    );
+  }
+  console.assert(caughtStaffRevertError, 'Staff user must NOT be allowed to revert delivered courier');
+
+  // Admin reverts from delivered back to in_transit (to fix mistakes)
+  await repo.updateCourierStatus(courier.id, 'in_transit', adminUser.id, 'Reverting delivery mistake');
   const boxAfterRevert = await repo.getBoxById(newBox.id);
   console.assert(boxAfterRevert?.status === 'in_transit', 'Box should revert to in_transit');
 
@@ -220,8 +249,8 @@ async function runTests() {
   console.assert(parcelReverted?.breakdown.in_transit_qty === 60, `Expected 60 in transit after revert, got ${parcelReverted?.breakdown.in_transit_qty}`);
   console.assert(parcelReverted?.status === 'in_transit', 'Parcel status should revert to in_transit');
 
-  // Re-deliver courier
-  await repo.updateCourierStatus(courier.id, 'delivered', logged.id, 'Truck confirmed arrived');
+  // Admin re-delivers courier
+  await repo.updateCourierStatus(courier.id, 'delivered', adminUser.id, 'Admin truck confirmed arrived');
   const parcelReDelivered = await repo.getParcelById(createdParcel.id);
   console.assert(parcelReDelivered?.breakdown.delivered_qty === 60, `Expected 60 delivered after re-delivery, got ${parcelReDelivered?.breakdown.delivered_qty}`);
 
@@ -514,18 +543,33 @@ async function runTests() {
   console.log('✅ Test 15 Passed: Customer merging verified.');
 
   // ==========================================
-  // Test 16: Staff User Management CRUD
+  // Test 16: Staff User Management CRUD & Owner Security Guards
   // ==========================================
-  console.log('Test 16: Testing Staff User Management CRUD...');
+  console.log('Test 16: Testing Staff User Management CRUD & Owner Security Guards...');
+  const ownerUser = await repo.login('yethiha@skcargo.com', 'admin123');
+  console.assert(ownerUser.is_owner === true, 'Owner user must have is_owner: true');
+
+  // Guard: Owner cannot be demoted
+  let caughtOwnerDemoteError = false;
+  try {
+    await repo.updateStaffUser(ownerUser.id, { role: 'staff' });
+  } catch (err: unknown) {
+    caughtOwnerDemoteError = true;
+    console.assert((err as Error).message.includes('System Owner cannot be demoted'), 'Correct error message');
+  }
+  console.assert(caughtOwnerDemoteError, 'System Owner must never be demoted');
+
   const newStaff = await repo.createStaffUser({
-    username: 'warehouse_intern',
+    email: 'intern@skcargo.com',
     name: 'Intern Tommy',
     role: 'staff',
     password: 'secret_password',
   });
-  console.assert(newStaff.username === 'warehouse_intern', 'Username matches');
+  console.assert(newStaff.email === 'intern@skcargo.com', 'Email matches');
+  console.assert(newStaff.username === 'intern', 'Username auto-derived from email prefix');
   console.assert(newStaff.role === 'staff', 'Role matches');
 
+  // Owner promotes staff to admin
   const updatedStaff = await repo.updateStaffUser(newStaff.id, {
     name: 'Senior Tommy',
     role: 'admin',
@@ -533,10 +577,38 @@ async function runTests() {
   console.assert(updatedStaff.name === 'Senior Tommy', 'Name updated');
   console.assert(updatedStaff.role === 'admin', 'Role updated to admin');
 
+  // Peer Admin Guard: Tommy logs in as an admin, but cannot demote Ye Thiha (Owner)
+  await repo.login('intern@skcargo.com', 'secret_password');
+
+  // Secondary admin CANNOT see owner account in the staff listing
+  const tommysStaffList = await repo.getStaffUsers();
+  console.assert(!tommysStaffList.some((u) => u.is_owner), 'Secondary admin must NOT see owner account in staff list');
+
+  let caughtPeerDemoteError = false;
+  try {
+    await repo.updateStaffUser(ownerUser.id, { role: 'staff' });
+  } catch (err: unknown) {
+    caughtPeerDemoteError = true;
+  }
+  console.assert(caughtPeerDemoteError, 'Secondary admin cannot demote System Owner');
+
+  let caughtOwnerModifyError = false;
+  try {
+    await repo.updateStaffUser(ownerUser.id, { name: 'Hacked Owner' });
+  } catch (err: unknown) {
+    caughtOwnerModifyError = true;
+  }
+  console.assert(caughtOwnerModifyError, 'Secondary admin cannot modify System Owner account');
+
+  // Owner logs back in and cleans up
+  await repo.login('yethiha@skcargo.com', 'admin123');
+  const ownersStaffList = await repo.getStaffUsers();
+  console.assert(ownersStaffList.some((u) => u.is_owner), 'System Owner must see owner account in staff list');
+
   await repo.deleteStaffUser(newStaff.id);
   const staffUsers = await repo.getStaffUsers();
   console.assert(!staffUsers.some((u) => u.id === newStaff.id), 'Deleted staff should not exist');
-  console.log('✅ Test 16 Passed: Staff user CRUD verified.');
+  console.log('✅ Test 16 Passed: Staff user CRUD & Owner security verified.');
 
   // ==========================================
   // Test 17: System Audit Logs Stream

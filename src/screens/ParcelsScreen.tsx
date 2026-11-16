@@ -376,15 +376,21 @@ export const ParcelsScreen: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
           {filteredParcels.map((p) => {
             const items = p.items || [];
-            // Collect all photo URLs across items to show ONLY 1 preview photo on the card
-            const allPhotoUrls: string[] = [];
+            // Prioritize lightweight thumbnail preview for list views (egress & storage optimization)
+            let previewPhotoUrl: string | null = null;
+            let totalPhotosCount = 0;
             for (const it of items) {
-              if (it.photo_urls && it.photo_urls.length > 0) {
-                allPhotoUrls.push(...it.photo_urls);
+              const count = it.photos_count || it.photo_urls?.length || 0;
+              totalPhotosCount += count;
+              if (!previewPhotoUrl) {
+                if (it.thumbnail_urls && it.thumbnail_urls.length > 0) {
+                  previewPhotoUrl = it.thumbnail_urls[0];
+                } else if (it.photo_urls && it.photo_urls.length > 0) {
+                  previewPhotoUrl = it.photo_urls[0];
+                }
               }
             }
-            const firstPhotoUrl = allPhotoUrls[0] || null;
-            const extraPhotosCount = Math.max(0, allPhotoUrls.length - 1);
+            const extraPhotosCount = Math.max(0, totalPhotosCount - 1);
 
             return (
               <div
@@ -454,12 +460,13 @@ export const ParcelsScreen: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Single Preview Photo (Only 1 photo shown on card) */}
-                    {firstPhotoUrl && (
+                    {/* Single Preview Photo (Only 1 thumbnail shown on card for minimal egress) */}
+                    {previewPhotoUrl && (
                       <div className="relative w-12 h-12 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 bg-slate-100 dark:bg-slate-800">
                         <img
-                          src={firstPhotoUrl}
+                          src={previewPhotoUrl}
                           alt="Preview"
+                          loading="lazy"
                           className="w-full h-full object-cover"
                         />
                         {extraPhotosCount > 0 && (

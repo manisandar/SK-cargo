@@ -5,6 +5,7 @@ import { strings } from '../strings';
 export interface LightboxPhoto {
   id?: string;
   url: string;
+  thumbnailUrl?: string;
   title?: string;
   subtitle?: string;
 }
@@ -225,8 +226,9 @@ export const PhotoLightbox: React.FC<PhotoLightboxProps> = ({
                 title={`Go to photo ${idx + 1}`}
               >
                 <img
-                  src={ph.url}
+                  src={ph.thumbnailUrl || ph.url}
                   alt={`Thumbnail ${idx + 1}`}
+                  loading="lazy"
                   className="w-full h-full object-cover"
                 />
               </button>

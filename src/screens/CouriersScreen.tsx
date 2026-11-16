@@ -1,37 +1,38 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
-  Truck,
-  Plus,
-  Search,
-  CheckCircle2,
-  Boxes,
-  PackageSearch,
-  Trash2,
-  X,
-  Loader2,
-  Layers,
-  Send,
-  RotateCcw,
   ArrowLeft,
-  Edit2,
-  ChevronLeft,
-  ChevronRight,
+  Boxes,
   Calendar,
   Camera,
   Check,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Edit2,
+  Layers,
+  Loader2,
+  PackageSearch,
+  Plus,
+  RotateCcw,
+  Search,
+  Send,
+  Trash2,
+  Truck,
+  X,
 } from 'lucide-react';
-import { useRepository, CourierWithDetails, BoxWithDetails, ParcelWithDetails, ParcelItemWithDetails } from '../data';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LightboxPhoto, PhotoLightbox } from '../components/PhotoLightbox';
 import { useAuth } from '../context/AuthContext';
 import { useDateFilter } from '../context/DateFilterContext';
+import { BoxWithDetails, CourierWithDetails, ParcelItemWithDetails, ParcelWithDetails, useRepository } from '../data';
 import { strings } from '../strings';
-import { formatLocalDate, formatDisplayDate } from '../utils/date';
 import { CourierStatus } from '../types';
-import { PhotoLightbox, LightboxPhoto } from '../components/PhotoLightbox';
+import { formatDisplayDate, formatLocalDate } from '../utils/date';
 import { compressPhoto } from '../utils/imageCompression';
 
 export const CouriersScreen: React.FC = () => {
   const repository = useRepository();
   const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   const [couriers, setCouriers] = useState<CourierWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -354,9 +355,17 @@ export const CouriersScreen: React.FC = () => {
     if (!activeCourier) return;
 
     if (toStatus === 'delivered') {
+      if (!isAdmin) {
+        alert(strings.couriers.onlyAdminCanDeliver);
+        return;
+      }
       const confirmMsg = `Mark truck ${activeCourier.truck_no} (${activeCourier.courier_code}) as DELIVERED?\n\nThis will mark all ${activeCourier.total_pieces_count || 0} cargo pieces on this truck as Delivered.`;
       if (!window.confirm(confirmMsg)) return;
     } else if (toStatus === 'in_transit' && activeCourier.status === 'delivered') {
+      if (!isAdmin) {
+        alert(strings.couriers.onlyAdminCanRevertDelivered);
+        return;
+      }
       const confirmMsg = `Revert truck ${activeCourier.truck_no} back to IN TRANSIT?\n\nThis will restore all cargo contents back to In Transit status.`;
       if (!window.confirm(confirmMsg)) return;
     } else if (toStatus === 'draft') {
@@ -564,11 +573,10 @@ export const CouriersScreen: React.FC = () => {
           <button
             type="button"
             onClick={() => setSelectedDate(selectedDate === 'all' ? todayIso : 'all')}
-            className={`px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold border transition-colors shrink-0 min-h-[34px] ${
-              selectedDate === 'all'
-                ? 'bg-[#1E75BB] text-white border-[#1E75BB]'
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
-            }`}
+            className={`px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold border transition-colors shrink-0 min-h-[34px] ${selectedDate === 'all'
+              ? 'bg-[#1E75BB] text-white border-[#1E75BB]'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+              }`}
           >
             {strings.parcelsList.allDates}
           </button>
@@ -609,11 +617,10 @@ export const CouriersScreen: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setStatusFilter(tab.id as 'all' | CourierStatus)}
-                className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all text-xs ${
-                  active
-                    ? 'bg-[#1E75BB] text-white shadow-xs'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                }`}
+                className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all text-xs ${active
+                  ? 'bg-[#1E75BB] text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
               >
                 {tab.label}
               </button>
@@ -755,14 +762,14 @@ export const CouriersScreen: React.FC = () => {
                           <div
                             key={pi}
                             onClick={() => handleOpenLightbox(courierPhotos, pi)}
-                            className={`relative w-11 h-11 rounded-lg border overflow-hidden bg-slate-50 dark:bg-slate-800 cursor-pointer hover:opacity-90 shrink-0 shadow-2xs ${
-                              isTruckPhoto ? 'border-[#1E75BB] ring-1 ring-[#1E75BB]/30' : 'border-slate-200 dark:border-slate-700'
-                            }`}
-                            title={isTruckPhoto ? 'Truck / Dispatch Photo' : 'Cargo Photo'}
+                            className={`relative w-11 h-11 rounded-lg border overflow-hidden bg-slate-50 dark:bg-slate-800 cursor-pointer hover:opacity-90 shrink-0 shadow-2xs ${isTruckPhoto ? 'border-[#1E75BB] ring-1 ring-[#1E75BB]/30' : 'border-slate-200 dark:border-slate-700'
+                              }`}
+                            title={isTruckPhoto ? 'Truck Photo' : 'Cargo Photo'}
                           >
                             <img
-                              src={ph.url}
+                              src={ph.thumbnailUrl || ph.url}
                               alt={ph.title || `Courier photo ${pi + 1}`}
+                              loading="lazy"
                               className="w-full h-full object-cover"
                             />
                             {isTruckPhoto && (
@@ -864,7 +871,7 @@ export const CouriersScreen: React.FC = () => {
       {selectedCourierId && activeCourier && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden space-y-4 p-5 max-h-[92vh] flex flex-col animate-in zoom-in-95">
-            
+
             {/* View 1: Main Courier Manifest View */}
             {modalView === 'details' ? (
               <>
@@ -950,7 +957,7 @@ export const CouriersScreen: React.FC = () => {
                       {activeCourier.status !== 'draft' && activeCourier.dispatch_date ? (
                         <span>Dispatch Date: {formatLocalDate(activeCourier.dispatch_date)}</span>
                       ) : (
-                        <span className="italic">Status: Loading (Dispatch date set upon dispatch)</span>
+                        <span className="italic">Status: Loading</span>
                       )}
                     </div>
                   </div>
@@ -960,18 +967,18 @@ export const CouriersScreen: React.FC = () => {
                       {activeCourier.total_pieces_count || 0} pieces ({(activeCourier.total_weight_kg || 0).toFixed(2)} kg)
                     </div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                      {activeCourier.total_boxes_count || 0} boxes • {(activeCourier.loose_items || []).length} loose packages
+                      {activeCourier.total_boxes_count || 0} boxes • {(activeCourier.loose_items || []).length} parcels
                     </div>
                   </div>
                 </div>
 
-                {/* Truck / Dispatch Photos Section */}
+                {/* Truck Photos Section */}
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 shrink-0">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <Camera className="w-3.5 h-3.5 text-[#1E75BB] dark:text-[#2D8AD1]" />
                       <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                        Truck / Dispatch Photos ({(activeCourier.photos || []).length})
+                        Truck Photos ({(activeCourier.photos || []).length})
                       </span>
                     </div>
                     <div>
@@ -1012,8 +1019,9 @@ export const CouriersScreen: React.FC = () => {
                           className="relative w-16 h-16 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 group bg-white dark:bg-slate-800 shadow-2xs"
                         >
                           <img
-                            src={p.url}
+                            src={p.thumbnail_url || p.url}
                             alt="Truck photo"
+                            loading="lazy"
                             className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
                             onClick={() => {
                               const allPhotos: LightboxPhoto[] = [
@@ -1089,54 +1097,66 @@ export const CouriersScreen: React.FC = () => {
 
                   {activeCourier.status === 'in_transit' && (
                     <>
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateStatus('delivered')}
-                        className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 min-h-[44px] transition-all"
-                        title="Mark truck run as delivered and update all cargo contents to Delivered"
-                      >
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>{strings.couriers.markDeliveredButton}</span>
-                      </button>
+                      {isAdmin ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateStatus('delivered')}
+                            className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 min-h-[44px] transition-all"
+                            title="Mark truck run as delivered and update all cargo contents to Delivered"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>{strings.couriers.markDeliveredButton}</span>
+                          </button>
 
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateStatus('draft')}
-                        className="px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors min-h-[44px] flex items-center gap-1.5 shrink-0"
-                        title="Revert back to loading stage"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        <span>{strings.couriers.revertToDraftButton}</span>
-                      </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateStatus('draft')}
+                            className="px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors min-h-[44px] flex items-center gap-1.5 shrink-0"
+                            title="Revert back to loading stage"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>{strings.couriers.revertToDraftButton}</span>
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus('draft')}
+                          className="w-full py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors min-h-[44px] flex items-center justify-center gap-1.5"
+                          title="Revert back to loading stage"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>{strings.couriers.revertToDraftButton}</span>
+                        </button>
+                      )}
                     </>
                   )}
 
                   {activeCourier.status === 'delivered' && (
                     <div className="flex items-center justify-between w-full gap-2 flex-wrap">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-3 py-2.5 rounded-xl">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-3 py-2.5 rounded-xl flex-1">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         <span>{strings.couriers.deliveredCompletedBadge}</span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateStatus('in_transit')}
-                        className="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-[#ED7D24] dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 rounded-xl text-xs font-bold transition-colors min-h-[44px] flex items-center gap-1.5"
-                        title="Revert back to in transit if marked delivered by mistake"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        <span>{strings.couriers.revertToTransitButton}</span>
-                      </button>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus('in_transit')}
+                          className="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-[#ED7D24] dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 rounded-xl text-xs font-bold transition-colors min-h-[44px] flex items-center gap-1.5"
+                          title="Revert back to in transit if marked delivered by mistake"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>{strings.couriers.revertToTransitButton}</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
 
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 italic shrink-0">
-                  {strings.couriers.statusCascadeNote}
-                </p>
-
                 {/* Scrollable Cargo Sections */}
                 <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-                  
+
                   {/* Section 1: Loaded Big Boxes */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -1182,8 +1202,9 @@ export const CouriersScreen: React.FC = () => {
                               <div className="flex items-center gap-2 min-w-0">
                                 {bPhotos.length > 0 && (
                                   <img
-                                    src={bPhotos[0].url}
+                                    src={bPhotos[0].thumbnailUrl || bPhotos[0].url}
                                     alt="Box photo thumbnail"
+                                    loading="lazy"
                                     onClick={() => handleOpenLightbox(bPhotos, 0)}
                                     className="w-10 h-10 object-cover rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:opacity-90 shrink-0 shadow-2xs"
                                   />
@@ -1257,6 +1278,7 @@ export const CouriersScreen: React.FC = () => {
                                   <img
                                     src={liPhotos[0].url}
                                     alt="Loose item thumbnail"
+                                    loading="lazy"
                                     onClick={() => handleOpenLightbox(liPhotos, 0)}
                                     className="w-10 h-10 object-cover rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer hover:opacity-90 shrink-0 shadow-2xs"
                                   />
@@ -1366,7 +1388,7 @@ export const CouriersScreen: React.FC = () => {
                   </button>
 
                   <h3 className="font-extrabold text-sm text-[#1E75BB] dark:text-[#2D8AD1]">
-                    Load Loose Parcel
+                    Load Parcel
                   </h3>
 
                   <button

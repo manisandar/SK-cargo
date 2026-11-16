@@ -10,6 +10,7 @@ import {
 export const SEED_USERS: StaffUser[] = [
   {
     id: '11111111-1111-4111-8111-111111111111',
+    email: 'staff1@skcargo.com',
     username: 'staff1',
     password: 'staff123',
     name: 'Aung Ko (Warehouse Floor)',
@@ -17,6 +18,7 @@ export const SEED_USERS: StaffUser[] = [
   },
   {
     id: '22222222-2222-4222-8222-222222222222',
+    email: 'staff2@skcargo.com',
     username: 'staff2',
     password: 'staff123',
     name: 'May Zin (Receiving Dock)',
@@ -24,10 +26,12 @@ export const SEED_USERS: StaffUser[] = [
   },
   {
     id: '33333333-3333-4333-8333-333333333333',
-    username: 'admin',
+    email: 'yethiha@skcargo.com',
+    username: 'yethiha',
     password: 'admin123',
-    name: 'Supervisor Dave',
+    name: 'Ye Thiha',
     role: 'admin',
+    is_owner: true,
   },
 ];
 

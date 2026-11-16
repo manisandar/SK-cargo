@@ -173,7 +173,7 @@ export const AuditLogsScreen: React.FC = () => {
                 <option value="all">{strings.admin.allStaff}</option>
                 {staffUsers.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {u.name} (@{u.username})
+                    {u.name} ({u.email || u.username})
                   </option>
                 ))}
               </select>

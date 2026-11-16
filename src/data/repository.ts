@@ -42,12 +42,15 @@ export interface ParcelFilters {
   status?: ParcelStatus;
   query?: string;
   customerId?: string;
+  date?: string;
+  limit?: number;
+  offset?: number;
 }
 
 export interface IRepository {
   // Auth & Staff Management
   getCurrentUser(): Promise<StaffUser | null>;
-  login(username: string, password?: string): Promise<StaffUser>;
+  login(identifier: string, password?: string, rememberMe?: boolean): Promise<StaffUser>;
   logout(): Promise<void>;
   getStaffUsers(): Promise<StaffUser[]>;
   createStaffUser(input: CreateStaffUserInput): Promise<StaffUser>;

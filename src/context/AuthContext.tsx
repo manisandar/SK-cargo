@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { StaffUser } from '../types';
 import { useRepository } from '../data';
+import { clearAllClientCaches } from '../utils/inMemoryCache';
 
 interface AuthContextType {
   user: StaffUser | null;
   loading: boolean;
-  login: (username: string, password?: string) => Promise<StaffUser>;
+  login: (identifier: string, password?: string, rememberMe?: boolean) => Promise<StaffUser>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -19,11 +20,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshUser = useCallback(async () => {
     try {
-      // Auto-migrate to fresh sample data spanning 4 dates if not yet updated
+      // In development mode, auto-migrate to fresh sample data spanning 4 dates if not yet updated.
+      // In production, ensure seed users exist without resetting user data.
       const sampleDataVersion = localStorage.getItem('sk_sample_data_version');
-      if (sampleDataVersion !== 'v6') {
+      if (import.meta.env.DEV && sampleDataVersion !== 'v7') {
         await repository.resetToSampleData();
-        localStorage.setItem('sk_sample_data_version', 'v6');
+        localStorage.setItem('sk_sample_data_version', 'v7');
       } else {
         await repository.seedInitialData();
       }
@@ -41,13 +43,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshUser();
   }, [refreshUser]);
 
-  const login = async (username: string, password?: string): Promise<StaffUser> => {
-    const loggedUser = await repository.login(username, password);
+  const login = async (identifier: string, password?: string, rememberMe: boolean = true): Promise<StaffUser> => {
+    clearAllClientCaches(); // Purge cache on user login/switch
+    const loggedUser = await repository.login(identifier, password, rememberMe);
     setUser(loggedUser);
     return loggedUser;
   };
 
   const logout = async (): Promise<void> => {
+    clearAllClientCaches(); // Purge all in-memory signed URLs and query caches
     await repository.logout();
     setUser(null);
   };

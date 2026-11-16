@@ -2,22 +2,26 @@ export type UserRole = 'staff' | 'admin';
 
 export interface StaffUser {
   id: string; // UUID
+  email?: string;
   username: string;
   name: string;
   role: UserRole;
+  is_owner?: boolean;
   password?: string;
   is_active?: boolean;
   created_at?: string;
 }
 
 export interface CreateStaffUserInput {
-  username: string;
+  email?: string;
+  username?: string;
   name: string;
   role: UserRole;
   password?: string;
 }
 
 export interface UpdateStaffUserInput {
+  email?: string;
   username?: string;
   name?: string;
   role?: UserRole;
@@ -27,7 +31,7 @@ export interface UpdateStaffUserInput {
 
 export interface Customer {
   id: string; // UUID
-  code: string; // e.g. SK-0001
+  code: string; // e.g. C0001
   name: string;
   phone?: string | null;
   alt_name?: string | null;
@@ -89,12 +93,16 @@ export interface ParcelItem {
 export interface ParcelItemPhoto {
   id: string;
   url: string;
+  thumbnail_url?: string;
+  storage_path?: string;
+  thumbnail_path?: string;
 }
 
 export interface ParcelItemWithDetails extends ParcelItem {
   sub_name?: CustomerSubName | null;
   photos_count: number;
   photo_urls?: string[];
+  thumbnail_urls?: string[];
   photos?: ParcelItemPhoto[];
   stored_qty: number;
   packed_qty: number;
@@ -125,6 +133,9 @@ export interface ParcelPhoto {
   parcel_id: string; // UUID
   parcel_item_id?: string | null; // UUID of specific package item
   blob: Blob;
+  thumbnail_blob?: Blob;
+  storage_path?: string;
+  thumbnail_path?: string;
   created_at: string; // ISO
 }
 
@@ -150,7 +161,7 @@ export type CourierStatus = 'draft' | 'in_transit' | 'delivered';
 
 export interface Courier {
   id: string; // UUID
-  courier_code: string; // e.g. CR-001
+  courier_code: string; // e.g. SK0001
   truck_no: string; // e.g. 7D-4521
   dispatch_date: string; // YYYY-MM-DD
   status: CourierStatus;
@@ -241,7 +252,7 @@ export interface CustomerMergeResult {
 export interface ParcelStatusLocation {
   type: 'box' | 'courier';
   id: string;
-  code: string; // e.g. B-001 or CR-001
+  code: string; // e.g. B-001 or SK0001
   label: string; // e.g. "B-001" or "Truck: 7D-4521"
   item_name: string; // package name on parcel
   qty: number;
@@ -281,7 +292,8 @@ export interface BoxPhoto {
 }
 
 export interface BoxPhotoWithUrl extends BoxPhoto {
-  url: string; // Object URL
+  url: string; // Object URL or signed URL
+  thumbnail_url?: string;
 }
 
 export interface BoxWithDetails extends Box {
@@ -292,6 +304,7 @@ export interface BoxWithDetails extends Box {
   items: BoxItemWithParcel[];
   photos?: BoxPhotoWithUrl[];
   photo_urls?: string[];
+  thumbnail_urls?: string[];
 }
 
 export interface CourierPhoto {
@@ -302,7 +315,8 @@ export interface CourierPhoto {
 }
 
 export interface CourierPhotoWithUrl extends CourierPhoto {
-  url: string; // Object URL
+  url: string; // Object URL or signed URL
+  thumbnail_url?: string;
 }
 
 export interface CourierLooseItemWithParcel {
@@ -323,4 +337,5 @@ export interface CourierWithDetails extends Courier {
   total_weight_kg: number;
   photos?: CourierPhotoWithUrl[];
   photo_urls?: string[];
+  thumbnail_urls?: string[];
 }

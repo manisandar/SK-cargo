@@ -10,13 +10,13 @@ console.log('🧪 Starting Image Compression Module Tests...');
 
 // Test 1: Configuration Constants
 console.log('Test 1: Configuration Constants Validation...');
-assert.strictEqual(PHOTO_COMPRESSION_CONFIG.maxWidthOrHeight, 1280);
-assert.strictEqual(PHOTO_COMPRESSION_CONFIG.maxSizeMB, 0.3);
+assert.strictEqual(PHOTO_COMPRESSION_CONFIG.maxWidthOrHeight, 1200);
+assert.strictEqual(PHOTO_COMPRESSION_CONFIG.maxSizeMB, 0.25);
 assert.strictEqual(PHOTO_COMPRESSION_CONFIG.preserveExif, false);
 assert.strictEqual(PHOTO_COMPRESSION_CONFIG.preferredMimeType, 'image/webp');
 assert.strictEqual(PHOTO_COMPRESSION_CONFIG.fallbackMimeType, 'image/jpeg');
 
-assert.strictEqual(THUMBNAIL_CONFIG.maxWidthOrHeight, 200);
+assert.strictEqual(THUMBNAIL_CONFIG.maxWidthOrHeight, 250);
 assert.strictEqual(THUMBNAIL_CONFIG.maxSizeMB, 0.03);
 assert.strictEqual(THUMBNAIL_CONFIG.preserveExif, false);
 console.log('✅ Test 1 Passed: Compression & Thumbnail configs verified.');

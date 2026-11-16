@@ -347,6 +347,7 @@ export const PackageCard: React.FC<PackageCardProps> = ({
               <img
                 src={url}
                 alt={`Photo ${idx + 1}`}
+                loading="lazy"
                 className="w-full h-full object-cover"
               />
               <button
